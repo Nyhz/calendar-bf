@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
+import { X, MapPin, Repeat } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import { TacButton } from '@/components/ui/tac-button'
+import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
@@ -12,6 +15,14 @@ const RECURRENCE_LABELS: Record<string, string> = {
   weekly: 'Repeats weekly',
   monthly: 'Repeats monthly',
   yearly: 'Repeats yearly',
+}
+
+const EVENT_TYPE_BADGE_COLOR: Record<string, string> = {
+  event: 'text-dr-blue',
+  meeting: 'text-dr-green',
+  birthday: 'text-dr-teal',
+  reminder: 'text-dr-amber',
+  holiday: 'text-dr-red',
 }
 
 type EventPopoverProps = {
@@ -74,6 +85,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
   if (!event) return null
 
   const isHoliday = event.type === 'holiday'
+  const badgeColorClass = EVENT_TYPE_BADGE_COLOR[event.type] ?? 'text-dr-dim'
 
   async function handleDelete() {
     if (!confirming) {
@@ -98,100 +110,121 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
 
   return (
     <Modal open={!!event} onClose={onClose} size="sm">
-      {/* Color bar */}
+      {/* Close button */}
+      <div className="flex justify-end -mt-2 -mr-2">
+        <button
+          onClick={onClose}
+          className="p-1.5 text-dr-muted hover:text-dr-text transition-colors"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Color accent bar */}
       <div
-        className="mb-4 h-2 rounded-full"
+        className="h-1 w-full mb-4"
         style={{ backgroundColor: event.color }}
       />
 
-      {/* Title */}
-      <h2 className="text-xl font-bold">{event.title}</h2>
+      {/* Title with left border accent */}
+      <div
+        className="border-l-3 pl-3 mb-4"
+        style={{ borderColor: event.color }}
+      >
+        <h2 className="font-tactical text-lg uppercase tracking-wider text-dr-text">
+          {event.title}
+        </h2>
+      </div>
+
+      {/* Type badge */}
+      <div className="mb-3">
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 font-tactical text-xs tracking-wider',
+            badgeColorClass,
+          )}
+        >
+          <span aria-hidden="true">&bull;</span>
+          {event.type.toUpperCase()}
+        </span>
+
+        {event.allDay === 1 && (
+          <span className="ml-2 inline-flex items-center font-tactical text-xs tracking-wider text-dr-dim">
+            <span aria-hidden="true">&bull;</span>
+            <span className="ml-1.5">ALL DAY</span>
+          </span>
+        )}
+      </div>
 
       {/* Date/Time */}
-      <p className="mt-2 text-sm capitalize text-text-muted">
+      <p className="font-data text-sm text-dr-secondary mb-3">
         {formatDateRange(event.start, event.end, event.allDay)}
       </p>
 
-      {event.allDay === 1 && (
-        <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-          All day
-        </span>
-      )}
-
-      {/* Type badge */}
-      <div className="mt-3">
-        <span
-          className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-          style={{ backgroundColor: event.color }}
-        >
-          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-        </span>
-      </div>
-
       {/* Location */}
       {event.location && (
-        <div className="mt-3 flex items-start gap-2 text-sm">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>{event.location}</span>
+        <div className="flex items-start gap-2 text-sm mb-3">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-dr-muted" />
+          <span className="font-data text-dr-text">{event.location}</span>
         </div>
       )}
 
       {/* Description */}
       {event.description && (
-        <p className="mt-3 whitespace-pre-wrap text-sm text-text-muted">
+        <p className="whitespace-pre-wrap font-data text-sm text-dr-secondary mb-3">
           {event.description}
         </p>
       )}
 
       {/* Recurrence */}
       {event.recurrence && event.recurrence !== 'none' && (
-        <p className="mt-3 text-sm text-text-muted">
-          <svg className="mr-1 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          {RECURRENCE_LABELS[event.recurrence] ?? event.recurrence}
-        </p>
+        <div className="flex items-center gap-2 text-sm text-dr-muted mb-3">
+          <Repeat className="h-4 w-4 shrink-0" />
+          <span className="font-data">{RECURRENCE_LABELS[event.recurrence] ?? event.recurrence}</span>
+        </div>
       )}
 
       {/* Actions */}
       {!isHoliday && (
-        <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
+        <div className="mt-4 flex justify-end gap-2 border-t border-dr-border pt-4">
           {confirming ? (
             <>
-              <span className="self-center text-sm text-red-600 dark:text-red-400">
+              <span className="self-center font-tactical text-xs tracking-wider text-dr-red uppercase">
                 Confirm deletion?
               </span>
-              <button
+              <TacButton
+                variant="ghost"
+                size="sm"
                 onClick={() => setConfirming(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-text-muted hover:bg-hover"
               >
                 No
-              </button>
-              <button
+              </TacButton>
+              <TacButton
+                variant="danger"
+                size="sm"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Yes, delete'}
-              </button>
+              </TacButton>
             </>
           ) : (
             <>
-              <button
+              <TacButton
+                variant="danger"
+                size="sm"
                 onClick={handleDelete}
-                className="rounded-lg px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
               >
                 Delete
-              </button>
-              <button
+              </TacButton>
+              <TacButton
+                variant="success"
+                size="sm"
                 onClick={() => onEdit(event!)}
-                className="rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
               >
                 Edit
-              </button>
+              </TacButton>
             </>
           )}
         </div>

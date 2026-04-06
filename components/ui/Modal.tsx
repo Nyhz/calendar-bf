@@ -7,9 +7,10 @@ type ModalProps = {
   onClose: () => void
   children: React.ReactNode
   size?: 'sm' | 'md'
+  className?: string
 }
 
-export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
+export function Modal({ open, onClose, children, size = 'md', className }: ModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const handleKeyDown = useCallback(
@@ -40,7 +41,7 @@ export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
       aria-modal="true"
     >
       <div
-        className={`w-full ${widthClass} max-h-[90vh] overflow-y-auto rounded-xl bg-surface-elevated p-6 shadow-2xl`}
+        className={`w-full ${widthClass} max-h-[90vh] overflow-y-auto bg-dr-surface border border-dr-border p-6 shadow-2xl ${className ?? ''}`}
       >
         {children}
       </div>
