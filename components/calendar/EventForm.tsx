@@ -2,7 +2,24 @@
 
 import { useState, useEffect, type FormEvent } from 'react'
 import { useSWRConfig } from 'swr'
-import { Modal } from '@/components/ui/Modal'
+import {
+  TacModal,
+  TacModalContent,
+  TacModalHeader,
+  TacModalTitle,
+  TacModalFooter,
+} from '@/components/ui/tac-modal'
+import { TacInput } from '@/components/ui/tac-input'
+import { TacTextarea } from '@/components/ui/tac-textarea'
+import {
+  TacSelect,
+  TacSelectTrigger,
+  TacSelectContent,
+  TacSelectItem,
+  TacSelectValue,
+} from '@/components/ui/tac-select'
+import { TacButton } from '@/components/ui/tac-button'
+import { cn } from '@/components/ui/utils'
 import { TYPE_COLORS } from '@/lib/db/schema'
 import type { Event } from '@/lib/db/schema'
 
@@ -43,8 +60,6 @@ function utcToLocalInput(utcIso: string): string {
 }
 
 function localInputToUtc(localValue: string): string {
-  // localValue is in Madrid time, we need to convert to UTC
-  // Create a formatter that gives us the offset
   const dateInMadrid = new Date(localValue)
   const utcDate = new Date(
     dateInMadrid.toLocaleString('en-US', { timeZone: 'UTC' })
@@ -76,6 +91,15 @@ function getDefaultEnd(startLocal: string): string {
   const min = String(startDate.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${d}T${h}:${min}`
 }
+
+const dateInputClass = cn(
+  'w-full bg-dr-bg border border-dr-border text-dr-text font-data text-sm',
+  'px-3 py-2.5 min-h-[44px]',
+  'focus:border-dr-amber focus:outline-none',
+  '[color-scheme:dark]',
+)
+
+const labelClass = 'mb-1 block text-xs font-tactical uppercase tracking-widest text-dr-secondary'
 
 export function EventForm({ open, onClose, event, defaultDate }: EventFormProps) {
   const { mutate } = useSWRConfig()
@@ -151,7 +175,6 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
     let endUtc: string
 
     if (allDay) {
-      // Extract just the date part from the local input
       const startDate = start.split('T')[0]
       const endDate = end.split('T')[0] || startDate
       startUtc = `${startDate}T00:00:00Z`
@@ -198,7 +221,6 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         }
       }
 
-      // Revalidate all event queries
       mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/events'))
       onClose()
     } catch {
@@ -208,189 +230,201 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
     }
   }
 
-  const inputClass =
-    'w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring'
-
   return (
-    <Modal open={open} onClose={onClose}>
-      <h2 className="mb-4 text-lg font-semibold">
-        {isEdit ? 'Edit event' : 'New event'}
-      </h2>
+    <TacModal open={open} onOpenChange={(isOpen: boolean) => { if (!isOpen) onClose() }}>
+      <TacModalContent showCloseButton={false} className="sm:max-w-lg">
+        <TacModalHeader>
+          <TacModalTitle>
+            {isEdit ? 'EDIT EVENT' : 'CREATE EVENT'}
+          </TacModalTitle>
+        </TacModalHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {errors.form && (
-          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
-            {errors.form}
-          </p>
-        )}
-
-        {/* Title */}
-        <div>
-          <label htmlFor="event-title" className="mb-1 block text-sm font-medium">
-            Title
-          </label>
-          <input
-            id="event-title"
-            type="text"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            className={inputClass}
-            autoFocus
-          />
-          {errors.title && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.title}</p>
+        <form onSubmit={handleSubmit} className="space-y-4 px-5 pb-2">
+          {errors.form && (
+            <p className="border border-dr-red/30 bg-dr-red/10 px-3 py-2 text-sm font-tactical text-dr-red">
+              {errors.form}
+            </p>
           )}
-        </div>
 
-        {/* All Day */}
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={allDay}
-            onChange={e => setAllDay(e.target.checked)}
-            className="rounded"
-          />
-          All day
-        </label>
-
-        {/* Start / End */}
-        <div className="grid grid-cols-2 gap-3">
+          {/* Title */}
           <div>
-            <label htmlFor="event-start" className="mb-1 block text-sm font-medium">
-              Start
+            <label htmlFor="event-title" className={labelClass}>
+              Title
             </label>
-            <input
-              id="event-start"
-              type={allDay ? 'date' : 'datetime-local'}
-              value={allDay ? start.split('T')[0] : start}
-              onChange={e => {
-                const val = allDay ? `${e.target.value}T00:00` : e.target.value
-                handleStartChange(val)
-              }}
-              className={inputClass}
+            <TacInput
+              id="event-title"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Event title..."
+              autoFocus
             />
-          </div>
-          <div>
-            <label htmlFor="event-end" className="mb-1 block text-sm font-medium">
-              End
-            </label>
-            <input
-              id="event-end"
-              type={allDay ? 'date' : 'datetime-local'}
-              value={allDay ? end.split('T')[0] : end}
-              onChange={e => {
-                const val = allDay ? `${e.target.value}T23:59` : e.target.value
-                setEnd(val)
-              }}
-              className={inputClass}
-            />
-            {errors.end && (
-              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.end}</p>
+            {errors.title && (
+              <p className="mt-1 text-xs font-tactical text-dr-red">{errors.title}</p>
             )}
           </div>
-        </div>
 
-        {/* Type + Color */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="event-type" className="mb-1 block text-sm font-medium">
-              Type
-            </label>
-            <select
-              id="event-type"
-              value={type}
-              onChange={e => handleTypeChange(e.target.value)}
-              className={inputClass}
-            >
-              {EVENT_TYPES.map(t => (
-                <option key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="event-color" className="mb-1 block text-sm font-medium">
-              Color
-            </label>
-            <div className="flex items-center gap-2">
+          {/* All Day */}
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-tactical uppercase tracking-wider text-dr-secondary">
+            <input
+              type="checkbox"
+              checked={allDay}
+              onChange={e => setAllDay(e.target.checked)}
+              className="size-4 cursor-pointer appearance-none border border-dr-border bg-dr-bg checked:border-dr-green checked:bg-dr-green"
+            />
+            All day
+          </label>
+
+          {/* Start / End */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="event-start" className={labelClass}>
+                Start
+              </label>
               <input
-                id="event-color"
-                type="color"
-                value={color}
-                onChange={e => setColor(e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border border-input-border bg-input-bg"
+                id="event-start"
+                type={allDay ? 'date' : 'datetime-local'}
+                value={allDay ? start.split('T')[0] : start}
+                onChange={e => {
+                  const val = allDay ? `${e.target.value}T00:00` : e.target.value
+                  handleStartChange(val)
+                }}
+                className={dateInputClass}
               />
-              <span className="text-xs text-text-muted">{color}</span>
+            </div>
+            <div>
+              <label htmlFor="event-end" className={labelClass}>
+                End
+              </label>
+              <input
+                id="event-end"
+                type={allDay ? 'date' : 'datetime-local'}
+                value={allDay ? end.split('T')[0] : end}
+                onChange={e => {
+                  const val = allDay ? `${e.target.value}T23:59` : e.target.value
+                  setEnd(val)
+                }}
+                className={dateInputClass}
+              />
+              {errors.end && (
+                <p className="mt-1 text-xs font-tactical text-dr-red">{errors.end}</p>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Description */}
-        <div>
-          <label htmlFor="event-description" className="mb-1 block text-sm font-medium">
-            Description
-          </label>
-          <textarea
-            id="event-description"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={3}
-            className={inputClass}
-          />
-        </div>
+          {/* Type + Color */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>
+                Type
+              </label>
+              <TacSelect value={type} onValueChange={(v) => { if (v) handleTypeChange(v) }}>
+                <TacSelectTrigger className="w-full">
+                  <TacSelectValue />
+                </TacSelectTrigger>
+                <TacSelectContent>
+                  {EVENT_TYPES.map(t => (
+                    <TacSelectItem key={t} value={t}>
+                      <span
+                        className="mr-1.5 inline-block size-2.5"
+                        style={{ backgroundColor: TYPE_COLORS[t] }}
+                      />
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </TacSelectItem>
+                  ))}
+                </TacSelectContent>
+              </TacSelect>
+            </div>
+            <div>
+              <label htmlFor="event-color" className={labelClass}>
+                Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="event-color"
+                  type="color"
+                  value={color}
+                  onChange={e => setColor(e.target.value)}
+                  className="h-[44px] w-14 cursor-pointer border border-dr-border bg-dr-bg p-1"
+                />
+                <span className="font-data text-xs text-dr-muted">{color}</span>
+              </div>
+            </div>
+          </div>
 
-        {/* Location */}
-        <div>
-          <label htmlFor="event-location" className="mb-1 block text-sm font-medium">
-            Location
-          </label>
-          <input
-            id="event-location"
-            type="text"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            className={inputClass}
-          />
-        </div>
+          {/* Description */}
+          <div>
+            <label htmlFor="event-description" className={labelClass}>
+              Description
+            </label>
+            <TacTextarea
+              id="event-description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Event description..."
+            />
+          </div>
 
-        {/* Recurrence */}
-        <div>
-          <label htmlFor="event-recurrence" className="mb-1 block text-sm font-medium">
-            Recurrence
-          </label>
-          <select
-            id="event-recurrence"
-            value={recurrence}
-            onChange={e => setRecurrence(e.target.value)}
-            className={inputClass}
-          >
-            {RECURRENCE_OPTIONS.map(r => (
-              <option key={r} value={r}>
-                {RECURRENCE_LABELS[r]}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Location */}
+          <div>
+            <label htmlFor="event-location" className={labelClass}>
+              Location
+            </label>
+            <TacInput
+              id="event-location"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="Location..."
+            />
+          </div>
+
+          {/* Recurrence */}
+          <div>
+            <label className={labelClass}>
+              Recurrence
+            </label>
+            <TacSelect value={recurrence} onValueChange={(v) => { if (v) setRecurrence(v) }}>
+              <TacSelectTrigger className="w-full">
+                <TacSelectValue />
+              </TacSelectTrigger>
+              <TacSelectContent>
+                {RECURRENCE_OPTIONS.map(r => (
+                  <TacSelectItem key={r} value={r}>
+                    {RECURRENCE_LABELS[r]}
+                  </TacSelectItem>
+                ))}
+              </TacSelectContent>
+            </TacSelect>
+          </div>
+        </form>
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2">
-          <button
+        <TacModalFooter>
+          <TacButton
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm text-text-muted hover:bg-hover"
           >
             Cancel
-          </button>
-          <button
+          </TacButton>
+          <TacButton
             type="submit"
+            variant="success"
+            size="sm"
             disabled={submitting}
-            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+            onClick={(e) => {
+              // Trigger form submission via the form element
+              const form = (e.currentTarget as HTMLElement).closest('[data-slot="dialog-content"]')?.querySelector('form')
+              if (form) {
+                form.requestSubmit()
+              }
+            }}
           >
-            {submitting ? 'Saving...' : isEdit ? 'Save changes' : 'Create event'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+            {submitting ? 'Saving...' : isEdit ? 'SAVE' : 'CREATE'}
+          </TacButton>
+        </TacModalFooter>
+      </TacModalContent>
+    </TacModal>
   )
 }
