@@ -32,7 +32,7 @@ function getMadridHours(date: Date): number {
 }
 
 function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
@@ -127,7 +127,7 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
 
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i)
 
-  const headerFmt = new Intl.DateTimeFormat('es-ES', {
+  const headerFmt = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -147,7 +147,7 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
       {allDayEvents.length > 0 && (
         <div className="flex border-b border-gray-200 px-4 py-1 dark:border-gray-700">
           <span className="mr-4 self-center text-xs text-gray-500 dark:text-gray-400">
-            Todo el día
+            All day
           </span>
           <div className="flex flex-1 flex-wrap gap-1">
             {allDayEvents.map(event => (

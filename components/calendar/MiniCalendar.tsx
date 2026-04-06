@@ -7,7 +7,7 @@ type MiniCalendarProps = {
   onDateSelect: (date: Date) => void
 }
 
-const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
@@ -40,7 +40,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
     return rows
   }, [displayMonth])
 
-  const headerLabel = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(displayMonth)
+  const headerLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(displayMonth)
 
   const goPrevMonth = () => setDisplayMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
   const goNextMonth = () => setDisplayMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))
@@ -51,7 +51,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
         <button
           onClick={goPrevMonth}
           className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Mes anterior"
+          aria-label="Previous month"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -61,7 +61,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
         <button
           onClick={goNextMonth}
           className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Mes siguiente"
+          aria-label="Next month"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -69,7 +69,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
         </button>
       </div>
 
-      <table className="w-full text-center text-xs" role="grid" aria-label="Mini calendario">
+      <table className="w-full text-center text-xs" role="grid" aria-label="Mini calendar">
         <thead>
           <tr>
             {DAY_LABELS.map(label => (
@@ -100,7 +100,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
                               ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
                               : 'text-gray-400 hover:bg-gray-100 dark:text-gray-600 dark:hover:bg-gray-800'
                       }`}
-                      aria-label={date.toLocaleDateString('es-ES')}
+                      aria-label={date.toLocaleDateString('en-US')}
                     >
                       {date.getDate()}
                     </button>

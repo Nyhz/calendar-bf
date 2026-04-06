@@ -64,13 +64,13 @@ Do not wrap the JSON in markdown code blocks. Return only the raw JSON object.`
 }
 
 export async function generateDailySummary(date: string, events: SummaryEvent[]): Promise<string> {
-  const systemPrompt = `Eres un asistente de calendario personal. Genera un resumen diario conciso en español para la fecha indicada.
+  const systemPrompt = `You are a personal calendar assistant. Generate a concise daily summary in English for the given date.
 
-Para cada evento, menciona la hora (en zona horaria Europe/Madrid) y el título. Si el evento tiene ubicación, inclúyela. Agrupa los eventos cronológicamente.
+For each event, mention the time (in Europe/Madrid timezone) and the title. If the event has a location, include it. Group events chronologically.
 
-Si no hay eventos, indica que el día está libre.
+If there are no events, indicate that the day is free.
 
-Responde solo con el texto del resumen, sin encabezados ni formato markdown.`
+Respond only with the summary text, without headers or markdown formatting.`
 
   const userMessage = `Fecha: ${date}\n\nEventos:\n${JSON.stringify(events, null, 2)}`
 

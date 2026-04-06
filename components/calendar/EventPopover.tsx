@@ -8,10 +8,10 @@ import type { Event } from '@/lib/db/schema'
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
 const RECURRENCE_LABELS: Record<string, string> = {
-  daily: 'Se repite cada día',
-  weekly: 'Se repite cada semana',
-  monthly: 'Se repite cada mes',
-  yearly: 'Se repite cada año',
+  daily: 'Repeats daily',
+  weekly: 'Repeats weekly',
+  monthly: 'Repeats monthly',
+  yearly: 'Repeats yearly',
 }
 
 type EventPopoverProps = {
@@ -21,7 +21,7 @@ type EventPopoverProps = {
 }
 
 function formatDateRange(start: string, end: string, allDay: number): string {
-  const fmt = new Intl.DateTimeFormat('es-ES', {
+  const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     weekday: 'long',
     day: 'numeric',
@@ -40,7 +40,7 @@ function formatDateRange(start: string, end: string, allDay: number): string {
     return `${startStr} – ${endStr}`
   }
 
-  const dateFmt = new Intl.DateTimeFormat('es-ES', {
+  const dateFmt = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     weekday: 'long',
     day: 'numeric',
@@ -48,7 +48,7 @@ function formatDateRange(start: string, end: string, allDay: number): string {
     year: 'numeric',
   })
 
-  const timeFmt = new Intl.DateTimeFormat('es-ES', {
+  const timeFmt = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
@@ -114,7 +114,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
 
       {event.allDay === 1 && (
         <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-          Todo el día
+          All day
         </span>
       )}
 
@@ -162,7 +162,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
           {confirming ? (
             <>
               <span className="self-center text-sm text-red-600 dark:text-red-400">
-                Confirmar eliminación?
+                Confirm deletion?
               </span>
               <button
                 onClick={() => setConfirming(false)}
@@ -175,7 +175,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
                 disabled={deleting}
                 className="rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
               >
-                {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+                {deleting ? 'Deleting...' : 'Yes, delete'}
               </button>
             </>
           ) : (
@@ -184,13 +184,13 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
                 onClick={handleDelete}
                 className="rounded-lg px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
               >
-                Eliminar
+                Delete
               </button>
               <button
                 onClick={() => onEdit(event!)}
                 className="rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
               >
-                Editar
+                Edit
               </button>
             </>
           )}

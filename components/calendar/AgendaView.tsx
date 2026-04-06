@@ -16,7 +16,7 @@ function getMadridDateString(date: Date): string {
 }
 
 function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
@@ -25,7 +25,7 @@ function formatTime(date: Date): string {
 }
 
 function formatDateHeader(date: Date): string {
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -61,7 +61,7 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
   if (grouped.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
-        No hay eventos en los próximos 30 días
+        No events in the next 30 days
       </div>
     )
   }
@@ -86,7 +86,7 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
                 />
                 <span className="w-28 shrink-0 text-sm text-gray-500 dark:text-gray-400">
                   {event.allDay || event.type === 'holiday'
-                    ? 'Todo el día'
+                    ? 'All day'
                     : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}
                 </span>
                 <span className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">

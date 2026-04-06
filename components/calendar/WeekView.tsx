@@ -33,7 +33,7 @@ function getMadridHours(date: Date): number {
 }
 
 function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
@@ -140,8 +140,8 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
   }, [events, weekDays])
 
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i)
-  const dayNameFmt = new Intl.DateTimeFormat('es-ES', { weekday: 'short', timeZone: TIMEZONE })
-  const dayNumFmt = new Intl.DateTimeFormat('es-ES', { day: 'numeric', timeZone: TIMEZONE })
+  const dayNameFmt = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: TIMEZONE })
+  const dayNumFmt = new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: TIMEZONE })
 
   return (
     <div className="flex h-full flex-col">
@@ -175,7 +175,7 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
       {allDayEvents.length > 0 && (
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           <div className="flex w-16 shrink-0 items-center justify-center text-xs text-gray-500 dark:text-gray-400">
-            Todo el día
+            All day
           </div>
           <div className="flex flex-1">
             {weekDays.map((day, i) => {

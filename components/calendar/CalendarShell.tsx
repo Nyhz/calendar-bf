@@ -84,10 +84,10 @@ function navigateDate(date: Date, view: ViewType, direction: number): Date {
 }
 
 function formatHeader(date: Date, view: ViewType): string {
-  const fmt = new Intl.DateTimeFormat('es-ES', { timeZone: TIMEZONE })
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE })
 
   if (view === 'month') {
-    return new Intl.DateTimeFormat('es-ES', {
+    return new Intl.DateTimeFormat('en-US', {
       month: 'long',
       year: 'numeric',
       timeZone: TIMEZONE,
@@ -101,7 +101,7 @@ function formatHeader(date: Date, view: ViewType): string {
     monday.setDate(date.getDate() + mondayOffset)
     const sunday = new Date(monday)
     sunday.setDate(monday.getDate() + 6)
-    const fmtRange = new Intl.DateTimeFormat('es-ES', {
+    const fmtRange = new Intl.DateTimeFormat('en-US', {
       day: 'numeric',
       month: 'short',
       timeZone: TIMEZONE,
@@ -110,7 +110,7 @@ function formatHeader(date: Date, view: ViewType): string {
   }
 
   if (view === 'day') {
-    return new Intl.DateTimeFormat('es-ES', {
+    return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -230,9 +230,9 @@ function CalendarShellInner() {
 
   const views: ViewType[] = ['month', 'week', 'day', 'agenda']
   const viewLabels: Record<ViewType, string> = {
-    month: 'Mes',
-    week: 'Semana',
-    day: 'Día',
+    month: 'Month',
+    week: 'Week',
+    day: 'Day',
     agenda: 'Agenda',
   }
 
@@ -245,7 +245,7 @@ function CalendarShellInner() {
         <button
           onClick={goPrev}
           className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Anterior"
+          aria-label="Previous"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -254,7 +254,7 @@ function CalendarShellInner() {
         <button
           onClick={goNext}
           className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Siguiente"
+          aria-label="Next"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -267,7 +267,7 @@ function CalendarShellInner() {
           onClick={goToday}
           className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
         >
-          Hoy
+          Today
         </button>
 
         <div className="ml-auto flex items-center gap-1">
@@ -289,7 +289,7 @@ function CalendarShellInner() {
         <button
           onClick={() => handleCreateEvent()}
           className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600"
-          aria-label="Crear evento"
+          aria-label="Create event"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -299,7 +299,7 @@ function CalendarShellInner() {
         <button
           onClick={toggleDarkMode}
           className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Alternar modo oscuro"
+          aria-label="Toggle dark mode"
         >
           {darkMode ? (
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

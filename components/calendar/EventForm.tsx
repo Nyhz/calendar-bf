@@ -12,11 +12,11 @@ const EVENT_TYPES = ['event', 'meeting', 'birthday', 'reminder'] as const
 const RECURRENCE_OPTIONS = ['none', 'daily', 'weekly', 'monthly', 'yearly'] as const
 
 const RECURRENCE_LABELS: Record<string, string> = {
-  none: 'Sin repetición',
-  daily: 'Diaria',
-  weekly: 'Semanal',
-  monthly: 'Mensual',
-  yearly: 'Anual',
+  none: 'No repeat',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
 }
 
 type EventFormProps = {
@@ -133,9 +133,9 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
-    if (!title.trim()) errs.title = 'El título es obligatorio'
+    if (!title.trim()) errs.title = 'Title is required'
     if (!allDay && start && end && new Date(end) <= new Date(start)) {
-      errs.end = 'La hora de fin debe ser posterior a la de inicio'
+      errs.end = 'End time must be after start time'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -182,7 +182,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         })
         if (!res.ok) {
           const data = await res.json()
-          setErrors({ form: data.error ?? 'Error al actualizar' })
+          setErrors({ form: data.error ?? 'Failed to update' })
           return
         }
       } else {
@@ -193,7 +193,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         })
         if (!res.ok) {
           const data = await res.json()
-          setErrors({ form: data.error ?? 'Error al crear evento' })
+          setErrors({ form: data.error ?? 'Failed to create event' })
           return
         }
       }
@@ -202,7 +202,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
       mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/events'))
       onClose()
     } catch {
-      setErrors({ form: 'Error de conexión' })
+      setErrors({ form: 'Connection error' })
     } finally {
       setSubmitting(false)
     }
@@ -214,7 +214,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
   return (
     <Modal open={open} onClose={onClose}>
       <h2 className="mb-4 text-lg font-semibold">
-        {isEdit ? 'Editar evento' : 'Nuevo evento'}
+        {isEdit ? 'Edit event' : 'New event'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -227,7 +227,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         {/* Title */}
         <div>
           <label htmlFor="event-title" className="mb-1 block text-sm font-medium">
-            Título
+            Title
           </label>
           <input
             id="event-title"
@@ -250,14 +250,14 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
             onChange={e => setAllDay(e.target.checked)}
             className="rounded"
           />
-          Todo el día
+          All day
         </label>
 
         {/* Start / End */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="event-start" className="mb-1 block text-sm font-medium">
-              Inicio
+              Start
             </label>
             <input
               id="event-start"
@@ -272,7 +272,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
           </div>
           <div>
             <label htmlFor="event-end" className="mb-1 block text-sm font-medium">
-              Fin
+              End
             </label>
             <input
               id="event-end"
@@ -294,7 +294,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="event-type" className="mb-1 block text-sm font-medium">
-              Tipo
+              Type
             </label>
             <select
               id="event-type"
@@ -329,7 +329,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         {/* Description */}
         <div>
           <label htmlFor="event-description" className="mb-1 block text-sm font-medium">
-            Descripción
+            Description
           </label>
           <textarea
             id="event-description"
@@ -343,7 +343,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         {/* Location */}
         <div>
           <label htmlFor="event-location" className="mb-1 block text-sm font-medium">
-            Ubicación
+            Location
           </label>
           <input
             id="event-location"
@@ -357,7 +357,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         {/* Recurrence */}
         <div>
           <label htmlFor="event-recurrence" className="mb-1 block text-sm font-medium">
-            Repetición
+            Recurrence
           </label>
           <select
             id="event-recurrence"
@@ -380,14 +380,14 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-sm text-text-muted hover:bg-hover"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
             className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
           >
-            {submitting ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear evento'}
+            {submitting ? 'Saving...' : isEdit ? 'Save changes' : 'Create event'}
           </button>
         </div>
       </form>

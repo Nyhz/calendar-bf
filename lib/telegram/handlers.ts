@@ -38,7 +38,7 @@ function getTodayRangeMadrid(): { start: string; end: string; dateStr: string } 
 
 function formatEventTime(isoStr: string): string {
   const date = new Date(isoStr)
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Madrid',
     hour: '2-digit',
     minute: '2-digit',
@@ -51,7 +51,7 @@ function formatParsedEvent(ev: PendingEvent): string {
   const lines = [
     `📅 *${ev.title}*`,
     `🕐 ${startTime} — ${endTime}`,
-    `📌 Tipo: ${ev.type}`,
+    `📌 Type: ${ev.type}`,
   ]
   if (ev.location) lines.push(`📍 ${ev.location}`)
   if (ev.description) lines.push(`📝 ${ev.description}`)
@@ -62,7 +62,7 @@ async function handleTextEvent(ctx: Context, text: string): Promise<void> {
   const chatId = ctx.chat?.id
   if (!chatId) return
 
-  await ctx.reply('🔄 Procesando tu evento...')
+  await ctx.reply('🔄 Processing your event...')
 
   const parsed = await parseEventFromText(text)
   const pending: PendingEvent = {
@@ -79,10 +79,10 @@ async function handleTextEvent(ctx: Context, text: string): Promise<void> {
   pendingEvents.set(chatId, pending)
 
   const keyboard = new InlineKeyboard()
-    .text('✅ Confirmar', 'confirm_event')
-    .text('❌ Cancelar', 'cancel_event')
+    .text('✅ Confirm', 'confirm_event')
+    .text('❌ Cancel', 'cancel_event')
 
-  await ctx.reply(`${formatParsedEvent(pending)}\n\n¿Quieres crear este evento?`, {
+  await ctx.reply(`${formatParsedEvent(pending)}\n\nDo you want to create this event?`, {
     parse_mode: 'Markdown',
     reply_markup: keyboard,
   })
@@ -91,23 +91,23 @@ async function handleTextEvent(ctx: Context, text: string): Promise<void> {
 export function registerHandlers(bot: Bot): void {
   bot.command('start', async (ctx) => {
     if (!isAuthorized(ctx)) {
-      await ctx.reply('No autorizado.')
+      await ctx.reply('Not authorized.')
       return
     }
 
     await ctx.reply(
-      '¡Hola! Soy tu asistente de calendario. Puedo ayudarte a:\n\n' +
-      '📝 *Crear eventos* — Envíame un mensaje de texto describiendo el evento\n' +
-      '🎤 *Crear eventos por voz* — Envíame un mensaje de voz\n' +
-      '📋 *Ver eventos de hoy* — Usa /hoy\n' +
-      '📊 *Resumen diario* — Usa /resumen',
+      'Hello! I\'m your calendar assistant. I can help you with:\n\n' +
+      '📝 *Create events* — Send me a text message describing the event\n' +
+      '🎤 *Create events by voice* — Send me a voice message\n' +
+      '📋 *View today\'s events* — Use /today\n' +
+      '📊 *Daily summary* — Use /summary',
       { parse_mode: 'Markdown' }
     )
   })
 
-  bot.command('hoy', async (ctx) => {
+  bot.command('today', async (ctx) => {
     if (!isAuthorized(ctx)) {
-      await ctx.reply('No autorizado.')
+      await ctx.reply('Not authorized.')
       return
     }
 
@@ -120,28 +120,28 @@ export function registerHandlers(bot: Bot): void {
         .where(and(gte(events.start, start), lte(events.start, end)))
 
       if (todayEvents.length === 0) {
-        await ctx.reply('No tienes eventos programados para hoy. 🎉')
+        await ctx.reply('You have no events scheduled for today. 🎉')
         return
       }
 
       const lines = todayEvents.map((ev) => {
-        const time = ev.allDay ? 'Todo el día' : formatEventTime(ev.start)
+        const time = ev.allDay ? 'All day' : formatEventTime(ev.start)
         const loc = ev.location ? ` — 📍 ${ev.location}` : ''
         return `• ${time} — ${ev.title}${loc}`
       })
 
-      await ctx.reply(`📅 *Eventos de hoy:*\n\n${lines.join('\n')}`, {
+      await ctx.reply(`📅 *Today's events:*\n\n${lines.join('\n')}`, {
         parse_mode: 'Markdown',
       })
     } catch (error) {
-      console.error('[Telegram] /hoy error:', error)
-      await ctx.reply('Lo siento, hubo un error al consultar los eventos de hoy.')
+      console.error('[Telegram] /today error:', error)
+      await ctx.reply('Sorry, there was an error fetching today\'s events.')
     }
   })
 
-  bot.command('resumen', async (ctx) => {
+  bot.command('summary', async (ctx) => {
     if (!isAuthorized(ctx)) {
-      await ctx.reply('No autorizado.')
+      await ctx.reply('Not authorized.')
       return
     }
 
@@ -161,18 +161,18 @@ export function registerHandlers(bot: Bot): void {
         location: ev.location,
       }))
 
-      await ctx.reply('🔄 Generando resumen...')
+      await ctx.reply('🔄 Generating summary...')
       const summary = await generateDailySummary(dateStr, summaryEvents)
       await ctx.reply(summary)
     } catch (error) {
-      console.error('[Telegram] /resumen error:', error)
-      await ctx.reply('Lo siento, no pude generar el resumen. Inténtalo de nuevo más tarde.')
+      console.error('[Telegram] /summary error:', error)
+      await ctx.reply('Sorry, I couldn\'t generate the summary. Please try again later.')
     }
   })
 
   bot.on('message:text', async (ctx) => {
     if (!isAuthorized(ctx)) {
-      await ctx.reply('No autorizado.')
+      await ctx.reply('Not authorized.')
       return
     }
 
@@ -180,20 +180,20 @@ export function registerHandlers(bot: Bot): void {
       await handleTextEvent(ctx, ctx.message.text)
     } catch (error) {
       console.error('[Telegram] Text message error:', error)
-      await ctx.reply('Lo siento, no pude procesar tu mensaje. Inténtalo de nuevo.')
+      await ctx.reply('Sorry, I couldn\'t process your message. Please try again.')
     }
   })
 
   bot.on('message:voice', async (ctx) => {
     if (!isAuthorized(ctx)) {
-      await ctx.reply('No autorizado.')
+      await ctx.reply('Not authorized.')
       return
     }
 
     try {
       const botToken = process.env.TELEGRAM_BOT_TOKEN
       if (!botToken) {
-        await ctx.reply('Error de configuración: token del bot no disponible.')
+        await ctx.reply('Configuration error: bot token not available.')
         return
       }
 
@@ -203,17 +203,17 @@ export function registerHandlers(bot: Bot): void {
       const filePath = await downloadTelegramFile(botToken, fileId)
       const transcription = await transcribeAudio(filePath)
 
-      await ctx.reply(`🎤 Transcripción: ${transcription}`)
+      await ctx.reply(`🎤 Transcription: ${transcription}`)
       await handleTextEvent(ctx, transcription)
     } catch (error) {
       console.error('[Telegram] Voice message error:', error)
-      await ctx.reply('Lo siento, no pude procesar tu mensaje de voz. Inténtalo de nuevo.')
+      await ctx.reply('Sorry, I couldn\'t process your voice message. Please try again.')
     }
   })
 
   bot.on('callback_query:data', async (ctx) => {
     if (!isAuthorized(ctx)) {
-      await ctx.answerCallbackQuery({ text: 'No autorizado.' })
+      await ctx.answerCallbackQuery({ text: 'Not authorized.' })
       return
     }
 
@@ -228,25 +228,25 @@ export function registerHandlers(bot: Bot): void {
     if (action === 'confirm_event') {
       const pending = pendingEvents.get(chatId)
       if (!pending) {
-        await ctx.answerCallbackQuery({ text: 'No hay evento pendiente.' })
-        await ctx.editMessageText('Este evento ya no está disponible.')
+        await ctx.answerCallbackQuery({ text: 'No pending event.' })
+        await ctx.editMessageText('This event is no longer available.')
         return
       }
 
       try {
         const [created] = await db.insert(events).values(pending).returning()
         pendingEvents.delete(chatId)
-        await ctx.answerCallbackQuery({ text: '¡Evento creado!' })
-        await ctx.editMessageText(`✅ Evento "${created.title}" creado correctamente.`)
+        await ctx.answerCallbackQuery({ text: 'Event created!' })
+        await ctx.editMessageText(`✅ Event "${created.title}" created successfully.`)
       } catch (error) {
         console.error('[Telegram] confirm_event error:', error)
-        await ctx.answerCallbackQuery({ text: 'Error al crear el evento.' })
-        await ctx.reply('Lo siento, hubo un error al guardar el evento.')
+        await ctx.answerCallbackQuery({ text: 'Failed to create event.' })
+        await ctx.reply('Sorry, there was an error saving the event.')
       }
     } else if (action === 'cancel_event') {
       pendingEvents.delete(chatId)
-      await ctx.answerCallbackQuery({ text: 'Evento cancelado.' })
-      await ctx.editMessageText('❌ Evento cancelado.')
+      await ctx.answerCallbackQuery({ text: 'Event cancelled.' })
+      await ctx.editMessageText('❌ Event cancelled.')
     } else {
       await ctx.answerCallbackQuery()
     }

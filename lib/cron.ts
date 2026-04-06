@@ -52,7 +52,7 @@ export function startCronJobs(): void {
 
       const chatId = process.env.TELEGRAM_AUTHORIZED_USER_ID
       if (bot && chatId) {
-        await bot.api.sendMessage(Number(chatId), `📊 *Resumen del día (${dateStr}):*\n\n${content}`, {
+        await bot.api.sendMessage(Number(chatId), `📊 *Daily summary (${dateStr}):*\n\n${content}`, {
           parse_mode: 'Markdown',
         })
         console.log('[Cron] Summary sent to Telegram')

@@ -16,16 +16,16 @@ type SidebarProps = {
 }
 
 const EVENT_TYPES = [
-  { key: 'event', label: 'Evento' },
-  { key: 'meeting', label: 'Reunión' },
-  { key: 'birthday', label: 'Cumpleaños' },
-  { key: 'reminder', label: 'Recordatorio' },
-  { key: 'holiday', label: 'Festivo' },
+  { key: 'event', label: 'Event' },
+  { key: 'meeting', label: 'Meeting' },
+  { key: 'birthday', label: 'Birthday' },
+  { key: 'reminder', label: 'Reminder' },
+  { key: 'holiday', label: 'Holiday' },
 ] as const
 
 const HOLIDAY_REGIONS = [
-  { key: 'national', label: 'Nacional' },
-  { key: 'ES-PV', label: 'País Vasco' },
+  { key: 'national', label: 'National' },
+  { key: 'ES-PV', label: 'Basque Country' },
   { key: 'ES-MD', label: 'Madrid' },
 ] as const
 
@@ -54,7 +54,7 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
       {/* Section 2: Event type filters */}
       <div>
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          Tipos de evento
+          Event types
         </h3>
         <ul className="space-y-1">
           {EVENT_TYPES.map(({ key, label }) => (
@@ -89,7 +89,7 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
       {/* Section 3: Holiday region toggles */}
       <div>
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          Regiones festivas
+          Holiday regions
         </h3>
         <ul className="space-y-1">
           {HOLIDAY_REGIONS.map(({ key, label }) => (

@@ -12,7 +12,7 @@ type MonthViewProps = {
   onSelectEvent: (event: Event) => void
 }
 
-const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MAX_VISIBLE_EVENTS = 3
 
 function getMadridDateString(date: Date): string {
@@ -139,7 +139,7 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
                       e.stopPropagation()
                     }}
                   >
-                    +{overflowCount} más
+                    +{overflowCount} more
                   </button>
                 )}
               </div>

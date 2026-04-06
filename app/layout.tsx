@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="es"
+      lang="en"
       className={`dark ${shareTechMono.variable} ${ibmPlexMono.variable} ${courierPrime.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-tactical bg-dr-bg text-dr-text">
