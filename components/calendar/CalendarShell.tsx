@@ -7,6 +7,8 @@ import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
 import { DayView } from './DayView'
 import { AgendaView } from './AgendaView'
+import { EventForm } from './EventForm'
+import { EventPopover } from './EventPopover'
 import type { Event } from '@/lib/db/schema'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
@@ -133,6 +135,7 @@ function CalendarShellInner() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createDate, setCreateDate] = useState<Date | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
 
   // Load dark mode preference
   useEffect(() => {
@@ -199,6 +202,17 @@ function CalendarShellInner() {
 
   const handleSelectEvent = useCallback((event: Event) => {
     setSelectedEvent(event)
+  }, [])
+
+  const handleEditFromPopover = useCallback((event: Event) => {
+    setSelectedEvent(null)
+    setEditingEvent(event)
+  }, [])
+
+  const handleCloseForm = useCallback(() => {
+    setShowCreateForm(false)
+    setEditingEvent(null)
+    setCreateDate(null)
   }, [])
 
   const goToday = useCallback(() => setCurrentDate(new Date()), [])
@@ -335,6 +349,21 @@ function CalendarShellInner() {
           )}
         </main>
       </div>
+
+      {/* Event Create/Edit Form */}
+      <EventForm
+        open={showCreateForm || !!editingEvent}
+        onClose={handleCloseForm}
+        event={editingEvent}
+        defaultDate={createDate}
+      />
+
+      {/* Event Detail Popover */}
+      <EventPopover
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        onEdit={handleEditFromPopover}
+      />
     </div>
   )
 }
