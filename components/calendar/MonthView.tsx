@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
@@ -72,13 +73,13 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
   }, [events])
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-dr-bg">
       {/* Day name headers */}
-      <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700">
+      <div className="grid grid-cols-7 border-b border-dr-border">
         {DAY_NAMES.map(name => (
           <div
             key={name}
-            className="py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400"
+            className="py-2 text-center font-tactical text-xs uppercase tracking-widest text-dr-dim"
           >
             {name}
           </div>
@@ -98,43 +99,63 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
           return (
             <div
               key={i}
-              className="flex min-h-24 cursor-pointer flex-col border-b border-r border-gray-200 p-1 dark:border-gray-700"
+              className={cn(
+                'flex min-h-24 cursor-pointer flex-col border-b border-r border-dr-border p-1 transition-colors',
+                isCurrentMonth ? 'bg-transparent' : 'bg-dr-bg/60',
+                'hover:bg-dr-hover'
+              )}
               onClick={() => {
                 onCreateEvent(day)
               }}
             >
-              <span
-                className={`mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                  today
-                    ? 'bg-blue-500 font-bold text-white'
-                    : isCurrentMonth
-                      ? 'text-gray-900 dark:text-gray-100'
-                      : 'text-gray-400 dark:text-gray-600'
-                }`}
-              >
-                {day.getDate()}
-              </span>
+              <div className="mb-1 flex justify-end">
+                <span
+                  className={cn(
+                    'inline-flex h-6 w-6 items-center justify-center font-data text-xs',
+                    today
+                      ? 'bg-dr-green font-bold text-dr-bg'
+                      : isCurrentMonth
+                        ? 'text-dr-secondary'
+                        : 'text-dr-dim'
+                  )}
+                >
+                  {day.getDate()}
+                </span>
+              </div>
 
               <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
-                {visibleEvents.map(event => (
-                  <button
-                    key={`${event.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectEvent(event)
-                    }}
-                    className={`truncate rounded px-1 text-left text-xs leading-5 text-white ${
-                      event.allDay || event.type === 'holiday' ? 'w-full' : ''
-                    }`}
-                    style={{ backgroundColor: event.color }}
-                    title={event.title}
-                  >
-                    {event.title}
-                  </button>
-                ))}
+                {visibleEvents.map(event => {
+                  const isFullWidth = event.allDay || event.type === 'holiday'
+                  return (
+                    <button
+                      key={`${event.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectEvent(event)
+                      }}
+                      className={cn(
+                        'group truncate border-l-[3px] px-1.5 text-left font-mono text-xs leading-5 text-dr-text transition-shadow',
+                        isFullWidth ? 'w-full' : ''
+                      )}
+                      style={{
+                        borderLeftColor: event.color,
+                        backgroundColor: `${event.color}1a`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = `0 0 12px ${event.color}40`
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                      title={event.title}
+                    >
+                      {event.title}
+                    </button>
+                  )
+                })}
                 {overflowCount > 0 && (
                   <button
-                    className="text-left text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    className="text-left font-tactical text-xs uppercase text-dr-green hover:text-dr-green/80"
                     onClick={(e) => {
                       e.stopPropagation()
                     }}
