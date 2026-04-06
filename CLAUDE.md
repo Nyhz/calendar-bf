@@ -1,141 +1,136 @@
-# CLAUDE.md — Calendar App
+# CLAUDE.md — Authoritative Reference
 
-Authoritative reference for agents and developers working on this project.
-Generated from Commander's briefing. Repository is pre-implementation.
+> Single-user personal calendar. Next.js app + Telegram bot + AI daily briefings.
+> Timezone: Europe/Madrid throughout. All infrastructure is local — no cloud required.
 
 ---
 
 ## Project Overview
 
-Personal calendar application with a Google Calendar–grade UI, a Telegram bot
-interface for natural-language event creation (text + voice), AI-generated
-daily summaries, and automatic Spanish holiday seeding. Primary user is a
-single authorized individual, timezone Europe/Madrid.
+A personal calendar web app with a companion Telegram bot. Core capabilities:
+
+- Full-featured calendar UI (month/week/day/agenda views) matching Google Calendar UX
+- Telegram bot: create events via free-form text or voice (Whisper transcription → Claude parsing)
+- AI-generated daily summaries via Claude Code subprocess, sent to Telegram + shown in UI
+- Spanish public holidays (national + Basque Country + Madrid) seeded from Nager.Date API
+- Single-user — authorization enforced by Telegram user ID, no auth system in the web app
 
 ---
 
 ## Tech Stack
 
-| Layer | Choice | Rationale |
+| Layer | Technology | Why |
 |---|---|---|
-| Framework | Next.js (App Router) | File-based routing, React Server Components, API routes co-located |
-| Styling | Tailwind CSS | Utility-first, dark mode via `dark:` variant |
-| Database | SQLite + Drizzle ORM | Zero-infrastructure local persistence; Drizzle for type-safe schema + migrations |
-| Bot | grammy (Telegram) | Modern, TypeScript-first Telegram Bot API client |
-| Voice transcription | Whisper (mlx-whisper or whisper.cpp) | Local — no external API, no cost, no data leaving device |
-| AI parsing & summaries | Claude Code via `--system-prompt` | Spawned as child process; structured event parsing + natural-language summaries |
-| Scheduling | node-cron | In-process cron for daily summary job |
-| Holiday data | Nager.Date API (free, no key) | `GET https://date.nager.at/api/v3/PublicHolidays/{year}/ES` |
+| Framework | Next.js 20 (install via latest) (App Router) | RSC, co-located API routes, file-based routing |
+| Styling | Tailwind CSS v4 | Utility-first, dark mode via `class` strategy |
+| Database | SQLite + Drizzle ORM | Zero infrastructure, type-safe schema + migrations |
+| Telegram Bot | grammy | TypeScript-first, webhook + long-polling support |
+| Voice | mlx-whisper or whisper.cpp | Local, no external API |
+| AI | Claude Code CLI (`--print --system-prompt`) | Subprocess for parsing & summaries |
+| Scheduling | node-cron | In-process cron for daily summary |
+| Holidays | Nager.Date API | Free, no key, Spanish holidays |
 
+IMPORTANT: Use latest versions of each dependency, don't install arbitrary versions
 ---
 
 ## Project Structure
 
-> Repository is empty at bootstrap time. Build to this layout.
-
 ```
 calendar/
-├── app/                          # Next.js App Router
-│   ├── layout.tsx                # Root layout (font, dark mode, providers)
-│   ├── page.tsx                  # Calendar shell (redirects or renders month view)
-│   ├── globals.css               # Tailwind base + custom CSS vars
-│   ├── api/
-│   │   ├── events/
-│   │   │   ├── route.ts          # GET (list), POST (create)
-│   │   │   └── [id]/
-│   │   │       └── route.ts      # GET, PATCH, DELETE
-│   │   ├── holidays/
-│   │   │   └── route.ts          # GET holidays; triggers seed if missing
-│   │   ├── summary/
-│   │   │   └── route.ts          # GET current summary, POST regenerate
-│   │   └── telegram/
-│   │       └── webhook/
-│   │           └── route.ts      # Telegram webhook receiver
-│   └── (calendar)/               # Route group for calendar views
-│       └── page.tsx
+├── app/
+│   ├── layout.tsx               # Root layout: dark mode class, font, globals
+│   ├── page.tsx                 # Redirects to /calendar or renders CalendarShell
+│   ├── globals.css              # Tailwind base + custom CSS vars
+│   └── api/
+│       ├── events/
+│       │   ├── route.ts         # GET (list), POST (create)
+│       │   └── [id]/route.ts    # GET, PATCH, DELETE
+│       ├── holidays/route.ts    # GET — triggers seed if needed
+│       ├── summary/route.ts     # GET (fetch), POST (regenerate)
+│       └── telegram/
+│           └── webhook/route.ts # POST — Telegram update receiver
 ├── components/
 │   ├── calendar/
-│   │   ├── CalendarShell.tsx     # Layout: sidebar + main view switcher
-│   │   ├── MonthView.tsx
-│   │   ├── WeekView.tsx
-│   │   ├── DayView.tsx
-│   │   ├── AgendaView.tsx
-│   │   ├── EventPopover.tsx      # Click-on-event popover
-│   │   ├── EventForm.tsx         # Create/edit modal
-│   │   ├── MiniCalendar.tsx      # Sidebar date navigator
-│   │   ├── Sidebar.tsx           # Mini calendar + type filters + holiday toggles
-│   │   └── SummaryBanner.tsx     # Daily AI summary card
-│   └── ui/                       # Generic primitives (Button, Modal, Toggle, etc.)
+│   │   ├── CalendarShell.tsx    # View router, header, layout
+│   │   ├── MonthView.tsx        # 6×7 grid
+│   │   ├── WeekView.tsx         # 7-column time grid
+│   │   ├── DayView.tsx          # Single-column time grid
+│   │   ├── AgendaView.tsx       # Scrollable date-grouped list
+│   │   ├── EventPopover.tsx     # Event detail popover (view/edit/delete)
+│   │   ├── EventForm.tsx        # Create/edit form (full fields)
+│   │   ├── MiniCalendar.tsx     # Sidebar mini-month navigator
+│   │   ├── Sidebar.tsx          # Mini calendar + filters + holiday toggles
+│   │   └── SummaryBanner.tsx    # Daily AI summary card
+│   └── ui/                      # Primitive components (Button, Modal, Toggle…)
 ├── lib/
 │   ├── db/
-│   │   ├── schema.ts             # Drizzle schema definitions
-│   │   ├── index.ts              # DB connection singleton
-│   │   └── migrations/           # Drizzle-generated migration files
-│   ├── holidays.ts               # Nager.Date fetch + seed logic
-│   ├── claude.ts                 # Spawn Claude Code child process helpers
-│   ├── whisper.ts                # Invoke Whisper for voice transcription
+│   │   ├── schema.ts            # Drizzle table definitions
+│   │   ├── index.ts             # DB client singleton
+│   │   └── migrations/          # Generated SQL migrations
+│   ├── holidays.ts              # Nager.Date fetch + seed logic
+│   ├── claude.ts                # Claude Code subprocess wrapper
+│   ├── whisper.ts               # Whisper transcription wrapper
 │   ├── telegram/
-│   │   ├── bot.ts                # grammy bot instance + middleware
-│   │   └── handlers.ts           # Message, command, callback_query handlers
-│   └── cron.ts                   # node-cron job definitions
+│   │   ├── bot.ts               # grammy bot instance + startup
+│   │   └── handlers.ts          # Message/command/callback handlers
+│   └── cron.ts                  # node-cron job definitions
 ├── drizzle.config.ts
 ├── next.config.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── package.json
-└── .env.local                    # Never committed
+├── .env.local                   # gitignored
+└── .env.local.example           # committed template
 ```
 
 ---
 
 ## Domain Model
 
-### Entities
-
-#### `events`
+### `events` table
 
 ```ts
-id          integer   PRIMARY KEY AUTOINCREMENT
-title       text      NOT NULL
-start       text      NOT NULL  -- ISO 8601 datetime, stored in UTC
-end         text      NOT NULL  -- ISO 8601 datetime, stored in UTC
-all_day     integer   NOT NULL  DEFAULT 0  -- boolean (0/1)
-type        text      NOT NULL  DEFAULT 'event'
-            -- CHECK type IN ('event','meeting','birthday','reminder','holiday')
-color       text      NOT NULL  -- hex or Tailwind color name
-description text
-location    text
-recurrence  text      DEFAULT 'none'
-            -- CHECK recurrence IN ('none','daily','weekly','monthly','yearly')
-region      text      -- NULL for user events; 'national'|'ES-PV'|'ES-MD' for holidays
-created_at  text      NOT NULL  DEFAULT (datetime('now'))
-updated_at  text      NOT NULL  DEFAULT (datetime('now'))
+// lib/db/schema.ts
+export const events = sqliteTable('events', {
+  id:          integer('id').primaryKey({ autoIncrement: true }),
+  title:       text('title').notNull(),
+  start:       text('start').notNull(),       // ISO 8601 UTC: "2025-06-15T08:00:00Z"
+  end:         text('end').notNull(),         // ISO 8601 UTC
+  allDay:      integer('all_day').notNull().default(0),  // 0|1 (SQLite has no boolean)
+  type:        text('type').notNull().default('event'),  // event|meeting|birthday|reminder|holiday
+  color:       text('color').notNull(),       // hex string e.g. "#3B82F6"
+  description: text('description'),
+  location:    text('location'),
+  recurrence:  text('recurrence').default('none'),  // none|daily|weekly|monthly|yearly
+  region:      text('region'),               // null (user event) | national | ES-PV | ES-MD
+  createdAt:   text('created_at').notNull().default(sql`(datetime('now'))`),
+  updatedAt:   text('updated_at').notNull().default(sql`(datetime('now'))`),
+})
+
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert
 ```
 
-#### `summaries`
+### `summaries` table
 
 ```ts
-id          integer   PRIMARY KEY AUTOINCREMENT
-date        text      NOT NULL UNIQUE  -- YYYY-MM-DD (Europe/Madrid date)
-content     text      NOT NULL         -- generated markdown/prose
-generated_at text     NOT NULL DEFAULT (datetime('now'))
+export const summaries = sqliteTable('summaries', {
+  id:          integer('id').primaryKey({ autoIncrement: true }),
+  date:        text('date').notNull().unique(),  // YYYY-MM-DD (Madrid tz)
+  content:     text('content').notNull(),        // prose, possibly markdown
+  generatedAt: text('generated_at').notNull().default(sql`(datetime('now'))`),
+})
 ```
 
-### Relationships
-
-- All holidays are stored in `events` with `type = 'holiday'` and a non-null `region`.
-- User-created events have `region = NULL`.
-- Summaries are keyed by Madrid-timezone date; one per day.
-
-### Default Colors by Type
+### Default colors by type
 
 ```ts
-const TYPE_COLORS = {
-  event:    '#3B82F6', // blue-500
-  meeting:  '#22C55E', // green-500
-  birthday: '#A855F7', // purple-500
-  reminder: '#EAB308', // yellow-500
-  holiday:  '#EF4444', // red-500
+export const TYPE_COLORS: Record<string, string> = {
+  event:    '#3B82F6',  // blue-500
+  meeting:  '#22C55E',  // green-500
+  birthday: '#A855F7',  // purple-500
+  reminder: '#EAB308',  // yellow-500
+  holiday:  '#EF4444',  // red-500
 }
 ```
 
@@ -144,51 +139,60 @@ const TYPE_COLORS = {
 ## Coding Rules and Conventions
 
 ### TypeScript
-- Strict mode enabled. No `any` without a comment explaining why.
-- Prefer `type` over `interface` for data shapes; `interface` for extension points.
-- Infer Drizzle types from schema: `type Event = typeof events.$inferSelect`.
 
-### File Conventions
-- One component per file. Filename matches export name (PascalCase).
-- `lib/` files export plain functions — no classes unless the abstraction demands it.
-- API routes follow Next.js App Router conventions: named exports `GET`, `POST`, `PATCH`, `DELETE`.
+- Strict mode (`"strict": true`). No `any` without a comment explaining why.
+- Prefer `type` over `interface` for data shapes. Use `interface` only for extension patterns.
+- Infer Drizzle types from schema: `type Event = typeof events.$inferSelect` — never duplicate.
+- API route handlers typed with `NextRequest` / `NextResponse`.
 
-### Data & Dates
-- All datetimes stored as UTC ISO 8601 strings in SQLite.
-- All display conversions happen at the component level using `Intl.DateTimeFormat` with `timeZone: 'Europe/Madrid'`.
-- Never store local time strings in the DB.
+### File conventions
+
+- One component per file, PascalCase filename matches export name.
+- `lib/` exports plain async functions, no React.
+- API routes: named exports `GET`, `POST`, `PATCH`, `DELETE` — no default export.
+- Keep components in `components/calendar/`; generic UI primitives in `components/ui/`.
+
+### Date and timezone
+
+- **All datetimes stored as UTC ISO 8601 strings** in the DB (`"2025-06-15T08:00:00Z"`).
+- Display conversions happen at the component level using `Intl.DateTimeFormat` with `timeZone: 'Europe/Madrid'`.
+- All-day events use `T00:00:00Z` / `T23:59:59Z` as start/end but render date-only.
+- Never store local time strings. Never use `new Date().toLocaleDateString()` in server code.
+- `NEXT_PUBLIC_TIMEZONE=Europe/Madrid` is the single source of truth.
 
 ### Styling
-- Tailwind utility classes only. No custom CSS unless absolutely necessary (e.g., drag-resize handles).
-- Dark mode: `dark:` prefix via `class` strategy (`darkMode: 'class'` in tailwind config).
-- Color palette: extend Tailwind, don't override defaults.
 
-### State Management
-- Server state: SWR or React Query for calendar data fetching (choose one, stick with it).
-- UI state: `useState` / `useReducer` in components. No global state library unless complexity demands it.
-- Dark mode: stored in `localStorage`, toggled via class on `<html>`.
+- Tailwind utility classes only — no `<style>` blocks, no CSS modules.
+- Dark mode: `darkMode: 'class'` in `tailwind.config.ts`. Toggle adds/removes `dark` class on `<html>`.
+- Persist dark mode preference in `localStorage`.
+- Calendar type colors come from `TYPE_COLORS` — never hardcode in JSX.
 
-### API Design
-- JSON in, JSON out. Always return `{ data }` or `{ error: string }`.
-- HTTP status codes are meaningful: 200, 201, 400, 401, 404, 500.
-- Validation at the API boundary — validate request body shape before hitting DB.
+### State management
 
-### Error Handling
-- API routes: `try/catch`, return `{ error: message }` with appropriate status.
-- Bot handlers: catch errors, send user-friendly Telegram message, log full error to console.
-- Claude/Whisper subprocess failures: treat as soft errors — log, notify user via Telegram if in bot context.
+- Server state (events, summary): SWR with key pattern `['/api/events', { start, end, types }]`.
+- Filter/view UI state: `useState` in `CalendarShell`.
+- Dark mode + filter preferences: `localStorage`.
+- No global state library (Zustand, Redux) — not needed.
 
-### Environment Variables
-- All secrets in `.env.local`. Never hardcode.
-- Access via `process.env.VAR_NAME` — validate required vars at startup in `lib/env.ts`.
+### API design
+
+- All responses: `{ data: T }` on success, `{ error: string }` on failure.
+- HTTP status codes: 200 (ok), 201 (created), 400 (bad input), 403 (forbidden), 404 (not found), 500 (server error), 503 (upstream dependency failed).
+- Validate at the API boundary (shape, required fields) before touching the DB.
+- `DELETE /api/events/:id` returns 403 if `type === 'holiday'` — holidays are system-managed.
+
+### Error handling
+
+- API routes: `try/catch` around all async, return `{ error: e.message }` with appropriate status.
+- Telegram handlers: catch all errors, send a user-friendly message (in Spanish), log full error server-side.
+- Claude/Whisper subprocess failures: soft error — log, notify user via Telegram, don't crash the bot.
+- Never swallow errors silently.
 
 ---
 
 ## Key Patterns
 
-### Claude Code Subprocess
-
-Invoke Claude Code for AI tasks (event parsing, summary generation):
+### Claude subprocess
 
 ```ts
 // lib/claude.ts
@@ -200,115 +204,151 @@ const execFileAsync = promisify(execFile)
 export async function runClaude(systemPrompt: string, userMessage: string): Promise<string> {
   const { stdout } = await execFileAsync('claude', [
     '--system-prompt', systemPrompt,
-    '--print',                // non-interactive output
+    '--print',
     userMessage,
   ])
   return stdout.trim()
 }
 ```
 
-### Holiday Seed Check
+Claude must be authenticated on the host (`claude auth login`). No API key env var needed.
 
-On app startup (or first request to `/api/holidays`), check if holidays for the
-current year exist. If not, fetch and seed:
+### Holiday seed (startup check)
 
 ```ts
-const count = await db.select({ count: sql`count(*)` })
-  .from(events)
-  .where(and(eq(events.type, 'holiday'), like(events.start, `${year}%`)))
+// Called from lib/holidays.ts, triggered on app init or GET /api/holidays
+async function ensureHolidaysSeeded(year: number) {
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(events)
+    .where(and(eq(events.type, 'holiday'), like(events.start, `${year}-%`)))
 
-if (count[0].count === 0) {
-  await seedHolidays(year)
+  if (count === 0) await seedHolidaysFromAPI(year)
 }
 ```
 
-### Telegram Webhook vs Polling
+### Recurrence expansion
 
-Use webhook in production, polling in development:
+Recurring events are stored as a **single row**. Expansion to multiple occurrences happens in the API layer when listing events within a date range — not stored individually. Expanded instances get a synthetic composite id: `"${id}_${isoDate}"`.
+
+### Telegram webhook vs. polling
 
 ```ts
+// lib/telegram/bot.ts
 if (process.env.NODE_ENV === 'production') {
-  bot.api.setWebhook(process.env.TELEGRAM_WEBHOOK_URL!)
+  // Webhook: set once at startup, handled by /api/telegram/webhook
+  await bot.api.setWebhook(process.env.TELEGRAM_WEBHOOK_URL!)
 } else {
-  bot.start()  // long-polling
+  bot.start()  // long-polling for local dev
 }
 ```
 
-### Recurrence Expansion
+### Filter state
 
-Recurring events are stored as a single row with a `recurrence` field.
-Expand occurrences at query time in the API layer — do not store individual
-occurrences. Return expanded events with a synthetic `id` like `${id}_${date}`.
+Filter state (event type checkboxes + holiday region toggles) lives in `CalendarShell` and is passed down to view components. Persistence to `localStorage` happens in a `useEffect`. Default state:
+
+```ts
+const DEFAULT_FILTERS = {
+  types: ['event', 'meeting', 'birthday', 'reminder', 'holiday'],
+  regions: ['national'],  // ES-PV and ES-MD off by default
+}
+```
 
 ---
 
-## Definition of Done Checklist
+## API Endpoints Reference
 
-Before marking any task complete, verify:
+### Events
 
-- [ ] TypeScript compiles with no errors (`tsc --noEmit`)
-- [ ] No `console.error` output during the happy path
-- [ ] API route validates input and returns correct status codes
-- [ ] Dark mode works for all new UI elements
-- [ ] Europe/Madrid timezone is respected (no UTC leakage in display)
-- [ ] New DB columns have migrations (not manual schema edits)
-- [ ] `.env.local` variables are documented in this file under Environment Variables
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/events` | List events. Query: `start`, `end` (ISO), `types` (csv), `regions` (csv) |
+| `POST` | `/api/events` | Create event. Body: `NewEvent` shape. Returns 201 + created event. |
+| `GET` | `/api/events/:id` | Single event by id. |
+| `PATCH` | `/api/events/:id` | Partial update. Returns updated event. |
+| `DELETE` | `/api/events/:id` | Delete. Returns 403 if `type === 'holiday'`. |
+
+### Holidays
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/holidays` | List holidays for `?year=YYYY`. Seeds if not present. |
+
+### Summary
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/summary` | Fetch summary for `?date=YYYY-MM-DD`. 404 if none yet. |
+| `POST` | `/api/summary` | Regenerate for `{ date }`. 503 if Claude fails. |
+
+### Telegram
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/telegram/webhook` | Telegram update receiver (production only). |
 
 ---
 
 ## Environment Variables
 
-Document all required variables here. Store in `.env.local` (never committed).
-
 ```bash
-# Telegram
-TELEGRAM_BOT_TOKEN=         # BotFather token
-TELEGRAM_AUTHORIZED_USER_ID= # Numeric Telegram user ID
-TELEGRAM_WEBHOOK_URL=       # HTTPS URL for webhook (production only)
+# Required
+TELEGRAM_BOT_TOKEN=               # From BotFather
+TELEGRAM_AUTHORIZED_USER_ID=      # Numeric Telegram user ID (string)
 
-# Claude Code
-# No token needed — uses the Claude Code CLI authenticated via `claude auth`
+# Required in production
+TELEGRAM_WEBHOOK_URL=             # Full HTTPS URL to /api/telegram/webhook
 
-# Whisper
-WHISPER_MODEL=base           # Model size: tiny, base, small, medium, large
-WHISPER_BACKEND=mlx-whisper  # 'mlx-whisper' (Apple Silicon) or 'whisper.cpp'
-
-# Cron
-DAILY_SUMMARY_CRON=0 8 * * * # Default: 8:00 AM Madrid time
-
-# App
+# Optional (defaults shown)
+WHISPER_MODEL=base                # tiny | base | small | medium | large
+WHISPER_BACKEND=mlx-whisper       # mlx-whisper | whisper.cpp
+DAILY_SUMMARY_CRON=0 8 * * *      # node-cron expression, Madrid time
 NEXT_PUBLIC_TIMEZONE=Europe/Madrid
-DATABASE_URL=./local.db      # SQLite file path
+DATABASE_URL=./local.db           # SQLite file path
+NODE_ENV=development              # development | production
 ```
+
+Claude Code CLI: no env var — must be pre-authenticated via `claude auth login` on the host.
 
 ---
 
-## Scripts / Commands Reference
+## Scripts Reference
 
 ```bash
-# Development
-npm run dev           # Next.js dev server + bot long-polling
+npm run dev             # Next.js dev server + Telegram long-polling
+npm run build           # Production build
+npm start               # Production server
 
-# Database
-npm run db:generate   # drizzle-kit generate — create migration from schema changes
-npm run db:migrate    # drizzle-kit migrate — apply pending migrations
-npm run db:studio     # drizzle-kit studio — visual DB browser
+npm run db:generate     # drizzle-kit generate — schema → SQL migration
+npm run db:migrate      # drizzle-kit migrate — apply pending migrations
+npm run db:studio       # drizzle-kit studio — visual DB browser
 
-# Type checking
-npm run typecheck     # tsc --noEmit
-
-# Build
-npm run build         # Next.js production build
-npm start             # Production server
+npm run typecheck       # tsc --noEmit — no build output, just type errors
 ```
 
 ---
 
-## Notes for Agents
+## Definition of Done
 
-- This is a single-user app. No auth layer beyond Telegram user ID check.
-- Whisper runs locally — ensure the binary/model is available at runtime. Document setup steps in README when writing onboarding docs.
-- Claude Code CLI must be authenticated on the host machine (`claude auth login`).
-- SQLite file (`local.db`) is gitignored.
-- The Nager.Date holiday API is free and requires no API key.
-- Holiday regions to support: `national`, `ES-PV` (Basque Country), `ES-MD` (Madrid). No others.
+Before marking any task complete:
+
+- [ ] `npm run typecheck` passes with zero errors
+- [ ] No `console.error` during the happy path
+- [ ] API endpoints validate input and return correct HTTP status codes
+- [ ] All new UI works in both light and dark mode
+- [ ] All datetime logic respects `Europe/Madrid` — no UTC leakage in display
+- [ ] Any new DB columns have a corresponding generated migration
+- [ ] New environment variables are added to `.env.local.example`
+- [ ] Holidays cannot be created or deleted via the events API (403)
+
+---
+
+## Implementation Notes
+
+- **Single-user**: The web UI has no auth. Security is Telegram user ID check only.
+- **Whisper binary**: Must be installed and accessible in `PATH` at runtime before voice messages work.
+- **SQLite file** (`local.db`): gitignored. Created automatically on first `db:migrate`.
+- **Recurrence editing**: PATCH always modifies the base record (all future occurrences). Edit-single-occurrence is a future feature.
+- **Telegram edit flow**: Pending edit state is in-memory only — lost on server restart.
+- **Holiday deduplication**: Seed checks `count(*) WHERE type='holiday' AND start LIKE 'YYYY-%'`. Re-seeding within the same year is a no-op.
+- **Nager.Date regions**: Only `national`, `ES-PV`, and `ES-MD` are stored. All other regional holidays are skipped on import.

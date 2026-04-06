@@ -1,7 +1,7 @@
-# SPEC.md — Calendar App
+# SPEC.md — Feature Specifications
 
-Feature specifications for all major features.
-Authoritative reference for implementation. Repository is pre-implementation.
+> Authoritative behavioral specification for all features.
+> Read this before implementing anything. When spec conflicts with intuition, spec wins.
 
 ---
 
@@ -13,201 +13,213 @@ Authoritative reference for implementation. Repository is pre-implementation.
 4. [Spanish Holidays](#4-spanish-holidays)
 5. [Telegram Bot](#5-telegram-bot)
 6. [Voice Message Handling](#6-voice-message-handling)
-7. [AI Daily Summaries](#7-ai-daily-summaries)
+7. [AI Daily Summary](#7-ai-daily-summary)
 8. [Dark Mode](#8-dark-mode)
-9. [API Endpoints](#9-api-endpoints)
-10. [Error Handling Specifications](#10-error-handling-specifications)
+9. [API Specification](#9-api-specification)
+10. [Error Handling](#10-error-handling)
 11. [Edge Cases and Constraints](#11-edge-cases-and-constraints)
-12. [Future Features / Backlog](#12-future-features--backlog)
+12. [Backlog / Future Features](#12-backlog--future-features)
 
 ---
 
 ## 1. Calendar UI
 
-### 1.1 Views
+### 1.1 Layout
 
-The app supports four views, switchable via tabs/buttons in the header:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [SummaryBanner — hidden until a summary exists]                  │
+├──────────────────────────────────────────────────────────────────┤
+│ HEADER: ← April 2025 → [Today] [Month|Week|Day|Agenda] [+] [☾]  │
+├──────────┬───────────────────────────────────────────────────────┤
+│ SIDEBAR  │  CALENDAR VIEW (MonthView / WeekView / DayView /      │
+│          │  AgendaView)                                          │
+│ MiniCal  │                                                       │
+│          │                                                       │
+│ Filters  │                                                       │
+│          │                                                       │
+│ Holidays │                                                       │
+└──────────┴───────────────────────────────────────────────────────┘
+```
 
-| View | Description |
+- Sidebar width: fixed ~280px, not resizable.
+- Header sticks to top; calendar area scrolls independently.
+- Floating `[+]` button (FAB) always visible bottom-right.
+
+### 1.2 URL State
+
+Active view and date are reflected in URL query params:
+
+- `?view=month&date=2025-04-01`
+- Deep-linking works — sharing the URL opens the same view/date.
+- Browser back/forward navigates between date changes.
+- Defaults: `view=month`, `date=<today in Europe/Madrid>`.
+
+### 1.3 Month View
+
+- 6-row × 7-column grid, Monday first.
+- Day numbers in top-right of each cell. Current day highlighted with a circle/pill.
+- Days outside the current month displayed in muted color, still clickable.
+- Events render as chips (colored left-border or full-color pill, title truncated).
+- If more than N events fit in a cell, show `+N more` link; clicking expands a popover listing all.
+- All-day events and holidays span the full cell width.
+
+**Interactions:**
+- Click empty area of a day cell → open quick-create popover with that date pre-filled.
+- Click an event chip → open EventPopover.
+- Click `+N more` → open day popover listing all events for that day.
+
+### 1.4 Week View
+
+- 7-column grid, Monday first, current day column highlighted.
+- All-day strip at top spanning all 7 columns.
+- Time grid below: 24 hours, rows every 30 minutes.
+- Current time indicator: a red horizontal line at the current time (live, updates every minute).
+- Overlapping events: displayed side-by-side, equal-width columns within the time slot.
+
+**Interactions:**
+- Click empty time slot → open EventForm with start time pre-filled (rounded to nearest 30 min).
+- Click and drag downward → select time range; release opens EventForm with start+end pre-filled.
+- Click event → open EventPopover.
+
+### 1.5 Day View
+
+- Single column time grid identical to Week View but for one day.
+- Date shown prominently in the header area.
+
+### 1.6 Agenda View
+
+- Scrollable list of upcoming events, grouped by date.
+- Date headers (e.g., "Lunes 7 de abril") above each group.
+- Skip days with no events.
+- Show events from today onward, loading more as user scrolls (or show a fixed window of 30 days).
+- Each row: colored dot, time range (or "Todo el día"), title, location if set.
+- Click event row → EventPopover.
+
+### 1.7 Header Controls
+
+| Control | Behavior |
 |---|---|
-| Month | Full month grid, events shown as chips |
-| Week | 7-column time grid (00:00–24:00), events as positioned blocks |
-| Day | Single-column time grid for the selected day |
-| Agenda | Scrollable list of upcoming events grouped by date |
-
-**Active view persists** in URL query param `?view=month|week|day|agenda` so
-deep-linking works and the browser back button behaves correctly.
-
-**Selected date** persists in URL as `?date=YYYY-MM-DD`.
-
-### 1.2 Month View
-
-- 6-row × 7-column grid. First column: Monday (European convention).
-- Each cell shows the day number.
-- Events rendered as horizontal chips (truncated title + color dot).
-- If a day has more events than fit: show "+N more" link that opens agenda for that day.
-- Today's cell has a highlighted background.
-- Clicking a **cell** opens the quick event creation popover pre-filled with that date.
-- Clicking an **event chip** opens the event popover (see §2.3).
-- Navigation: prev/next month arrows + "Today" button.
-
-### 1.3 Week View
-
-- Time grid: rows at 30-minute intervals, columns for each day of the week.
-- All-day events shown in a fixed strip above the time grid.
-- Events positioned by their start/end time (absolute position within the column).
-- Overlapping events are shown side-by-side (shrink width, offset columns).
-- **Click on empty time slot** → creates event with that day + time pre-filled.
-- **Click and drag on empty time slot** → creates event spanning the dragged range.
-- Clicking an event block opens the event popover.
-- Current time indicator: red horizontal line in today's column.
-- Navigation: prev/next week arrows + "Today" button.
-- Week starts on Monday.
-
-### 1.4 Day View
-
-- Single-column time grid, same row height as Week View.
-- All-day events in a strip at top.
-- Click/drag behavior identical to Week View but for the single day.
-- Navigation: prev/next day arrows + "Today" button.
-
-### 1.5 Agenda View
-
-- Infinite-scroll (or paginated) list of future events starting from the selected date.
-- Grouped by date with a date header (e.g., "Lunes, 7 de abril de 2026").
-- Each event row: color dot, title, time range, type badge.
-- Clicking an event row opens the event popover.
-- Empty state: "No hay eventos próximos."
-- Navigation: date picker to jump to a specific date.
-
-### 1.6 Header
-
-```
-[ < ] [ Today ] [ > ]   "Abril 2026"   [Month][Week][Day][Agenda]   [+]   [🌙]
-```
-
-- `<` / `>`: navigate prev/next period for the active view.
-- `Today`: jump to current date.
-- Period label: updates based on active view (month name, week range, day).
-- View tabs: switch views.
-- `[+]`: floating action button — opens full event creation form (no pre-fill).
-- `[🌙]`: dark mode toggle.
+| `←` / `→` arrows | Navigate prev/next period (month, week, or day depending on view) |
+| `Today` button | Jump to current date in current view |
+| View tabs `Month \| Week \| Day \| Agenda` | Switch view, preserve active date |
+| `[+]` button | Open full EventForm (create mode, no date pre-fill) |
+| `[☾]` (dark mode toggle) | Toggle dark/light, persist in localStorage |
 
 ---
 
 ## 2. Event Management
 
-### 2.1 Event Creation — Quick (Click on Cell/Slot)
+### 2.1 Event Fields
 
-Triggered by clicking a day cell (Month View) or time slot (Week/Day View).
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| `title` | string | Yes | — | Max 255 chars |
+| `start` | datetime | Yes | — | ISO UTC stored |
+| `end` | datetime | Yes | — | Must be ≥ start |
+| `allDay` | boolean | No | false | Hides time inputs when true |
+| `type` | enum | No | `event` | event / meeting / birthday / reminder |
+| `color` | hex string | No | type default | Pre-filled from TYPE_COLORS[type] |
+| `description` | string | No | — | Free text |
+| `location` | string | No | — | Free text |
+| `recurrence` | enum | No | `none` | none / daily / weekly / monthly / yearly |
+
+Note: `type: 'holiday'` and `region` field are system-only — not available in the UI form.
+
+### 2.2 EventForm (Create / Edit)
+
+Full form with all fields. Opened via:
+- FAB `[+]`
+- "Edit" button in EventPopover
+- Telegram bot edit flow
 
 Behavior:
-- Opens a lightweight inline popover/tooltip (not a modal).
-- Pre-fills: date from clicked cell, time from clicked slot (rounded to nearest 30 min).
-- Fields: title (text input, focused on open), date/time display (read-only in quick form).
-- Submit: creates event with defaults (`type=event`, default color, no recurrence).
-- "More options" link → upgrades to the full event form, preserving entered title.
+- When `allDay` is toggled ON: hide time pickers, set start to `00:00`, end to `23:59`.
+- When `type` changes: auto-update `color` to `TYPE_COLORS[newType]` unless user has manually changed color.
+- `end` datetime picker enforces `end >= start` (disable or clamp earlier values).
+- Recurrence selector: dropdown None / Daily / Weekly / Monthly / Yearly.
+- Submit calls `POST /api/events` (create) or `PATCH /api/events/:id` (edit).
+- On success: close form, invalidate SWR cache for events in visible range.
+- On error: show inline error message, do not close form.
 
-### 2.2 Event Creation — Full Form
+### 2.3 Quick-Create Popover
 
-Triggered by: floating `[+]` button, "More options" from quick form, or editing an event.
+Minimal form triggered by clicking a day/time cell. Fields: title (required), date/time (pre-filled). Submit creates event with type defaults. A "More options" link opens the full EventForm.
 
-Modal dialog with the following fields:
+### 2.4 EventPopover
 
-| Field | Type | Validation |
-|---|---|---|
-| Title | text input | required, max 255 chars |
-| Start datetime | datetime-local | required |
-| End datetime | datetime-local | required, must be ≥ start |
-| All-day toggle | toggle | if on, hides time pickers |
-| Type | select | event / meeting / birthday / reminder |
-| Color | color picker | defaults to type default color, overridable |
-| Description | textarea | optional |
-| Location | text input | optional |
-| Recurrence | select | none / daily / weekly / monthly / yearly |
-
-- Submitting a **new** event: `POST /api/events` → 201 → close modal, refresh view.
-- Submitting an **edit**: `PATCH /api/events/:id` → 200 → close modal, refresh view.
-- "Cancel" button discards changes.
-- When editing a recurring event: warn "This will modify all occurrences." (single vs. all
-  recurrence editing is a future feature — for now, edit modifies the base record only).
-
-### 2.3 Event Popover (Click on Existing Event)
-
-Small popover anchored to the event chip/block. Contents:
+Shown when clicking an existing event. Content:
 
 ```
-[Color dot] Title
-            📅 Mon, 7 Apr 2026 · 10:00–11:00
-            📍 Location (if set)
-            📝 Description excerpt (2 lines, truncated)
-            ─────────────────────────────────────
-            [✏️ Edit]  [🗑️ Delete]  [✕ Close]
+┌─────────────────────────────── [✕] ┐
+│ ● [color dot] TITLE                  │
+│ Apr 15, 10:00 – 11:00                │
+│ 📍 Location (if set)                 │
+│ 📝 Description (if set)              │
+│                                      │
+│ [✏️ Editar]        [🗑️ Eliminar]    │
+└──────────────────────────────────────┘
 ```
 
-- `Edit` → opens full event form pre-filled.
-- `Delete` → confirmation dialog ("¿Eliminar este evento?") → `DELETE /api/events/:id`
-  → close popover, refresh view.
-- `Close` (or click outside) → dismiss popover.
+- "Editar" opens EventForm in edit mode pre-populated with event data.
+- "Eliminar" shows a confirmation prompt, then calls `DELETE /api/events/:id`.
+- Holidays: show "Festivo" badge; hide Edit/Delete buttons.
+- Dismiss by clicking outside or pressing Escape.
 
-### 2.4 Click-and-Drag Event Creation
+### 2.5 Drag-to-Create (Week/Day View)
 
-In Week and Day views:
-- Press on an empty time slot and drag down to select a time range.
-- Visual highlight shows the selected range during drag.
-- On mouse-up: open quick creation form (§2.1) with start/end pre-filled from the range.
-- Minimum drag length: 30 minutes.
+1. Mouse down on empty time slot → start selection.
+2. Drag downward → highlight selection range.
+3. Mouse up → open EventForm with start/end pre-filled.
+4. If user drags up or to another day, cancel the selection.
 
-### 2.5 Event Display Rules
+### 2.6 Recurrence Logic
 
-- Events are filtered by the sidebar toggles (type visibility + holiday region visibility).
-- Filtered-out events are not rendered — they are excluded from the DOM entirely.
-- Holiday events (type = `holiday`) cannot be edited or deleted from the UI.
+- Recurring events stored as one DB row.
+- API `GET /api/events?start=&end=` expands recurrences in the response.
+- Expansion algorithm: starting from `event.start`, generate occurrences until `end` param.
+- Each generated occurrence has `id: "${baseId}_${YYYY-MM-DD}"`.
+- `PATCH` / `DELETE` on a recurring event always affects the base record (all occurrences).
 
 ---
 
 ## 3. Sidebar
 
-Always visible alongside the main calendar view (collapsible on small screens).
-
 ### 3.1 Mini Calendar
 
-- Full-month grid (same layout as Month View, but compact — ~220px wide).
-- Clicking a date sets the active date in the main view.
-- Highlights today, highlights the currently selected date.
-- Prev/next month navigation.
-- Does not independently filter events.
+- Compact month grid (~220px wide, ~200px tall).
+- Shows current month by default; prev/next arrows to navigate months independently from main view.
+- Click any day: set main calendar's active date to that day (and switch to Day View if in month view? — only change the active date, keep view).
+- Highlight: today with circle, currently selected date with filled circle.
 
 ### 3.2 Event Type Filters
 
-Checkbox list controlling which event types are visible in the main view:
-
+Checkboxes for:
 ```
-☑ Eventos        (blue)
-☑ Reuniones      (green)
-☑ Cumpleaños     (purple)
-☑ Recordatorios  (yellow)
+☑ Eventos       (blue dot)
+☑ Reuniones     (green dot)
+☑ Cumpleaños    (purple dot)
+☑ Recordatorios (yellow dot)
 ```
 
-- State stored in `localStorage` so it survives page reload.
-- Default: all checked.
+- All checked by default.
+- Unchecking a type hides those events from all views (they are not fetched, or filtered client-side — prefer filtering at API query param level).
+- State persisted in `localStorage` under key `calendar_type_filters`.
 
 ### 3.3 Holiday Region Toggles
 
-Toggle switches (not checkboxes) for holiday visibility:
-
+Toggle switches (not checkboxes) for:
 ```
-⬛ Nacionales           [ON]
-⬛ País Vasco (ES-PV)   [OFF]
-⬛ Madrid (ES-MD)       [OFF]
+● Nacionales       [ON]
+○ País Vasco       [OFF]
+○ Madrid           [OFF]
 ```
 
-- State stored in `localStorage`.
-- Default: Nacionales ON, regional OFF.
-- Only one regional set should be enabled at a time (UX recommendation, not a hard
-  constraint — allowing both is acceptable).
-- When toggled ON, the corresponding holidays appear in the main view immediately
-  (client-side filter, no refetch required if holidays are already in cache).
+- Default: National ON, regional OFF.
+- These filter by the `region` field on holiday events.
+- State persisted in `localStorage` under key `calendar_holiday_regions`.
+- When a region is toggled OFF, holidays of that region disappear from all views.
+- Multiple regions can be active simultaneously.
 
 ---
 
@@ -215,77 +227,59 @@ Toggle switches (not checkboxes) for holiday visibility:
 
 ### 4.1 Data Source
 
-Nager.Date API — no API key required.
-
 ```
 GET https://date.nager.at/api/v3/PublicHolidays/{year}/ES
 ```
 
-Response shape (relevant fields):
+Response is an array of objects with at minimum:
+- `date`: `"YYYY-MM-DD"`
+- `localName`: Spanish name (e.g., `"Año Nuevo"`)
+- `global`: `true` if national
+- `counties`: array of region codes (e.g., `["ES-PV"]`) or `null`
 
-```json
-[
-  {
-    "date": "2026-01-01",
-    "localName": "Año Nuevo",
-    "name": "New Year's Day",
-    "global": true,
-    "counties": null
-  },
-  {
-    "date": "2026-01-20",
-    "localName": "Día de San Sebastián",
-    "name": "Saint Sebastian's Day",
-    "global": false,
-    "counties": ["ES-PV"]
-  }
-]
-```
+No API key required.
 
 ### 4.2 Classification
 
 | Condition | Stored `region` |
 |---|---|
-| `global === true` | `national` |
-| `counties` includes `ES-PV` | `ES-PV` |
-| `counties` includes `ES-MD` | `ES-MD` |
-| Neither (other region) | Skip — do not store |
+| `global === true` | `"national"` |
+| `counties` includes `"ES-PV"` | `"ES-PV"` |
+| `counties` includes `"ES-MD"` | `"ES-MD"` |
+| Any other regional holiday | Skip — not imported |
 
-A holiday may appear in multiple counties. If a holiday is national (`global: true`),
-it is stored once as `national`. If it is not global but is in both ES-PV and ES-MD
-counties, store it as two rows (one per region).
+A holiday with `global === true` is stored as `national` regardless of `counties`.
 
-### 4.3 Seed Logic
-
-```
-On app startup (Next.js instrumentation hook or first API call to /api/holidays):
-
-1. Determine current year (Europe/Madrid).
-2. Query: SELECT COUNT(*) FROM events WHERE type='holiday' AND start LIKE '{year}%'
-3. If count === 0:
-   a. Fetch from Nager.Date API
-   b. Filter and transform to DB rows
-   c. Bulk INSERT into events table
-4. If count > 0: skip (already seeded for this year)
-```
-
-Seed runs once per year. No UI to trigger re-seed (logs will show seed activity).
-
-### 4.4 Holiday Event Properties
-
-When seeding, set:
+### 4.3 Holiday Event Properties
 
 ```ts
 {
-  title: holiday.localName,         // Spanish name
-  start: `${holiday.date}T00:00:00Z`,
-  end: `${holiday.date}T23:59:59Z`,
-  all_day: 1,
-  type: 'holiday',
-  color: '#EF4444',                 // red-500
-  region: 'national' | 'ES-PV' | 'ES-MD',
+  title:       holiday.localName,
+  start:       `${holiday.date}T00:00:00Z`,
+  end:         `${holiday.date}T23:59:59Z`,
+  allDay:      1,
+  type:        'holiday',
+  color:       '#EF4444',   // red-500
+  region:      'national' | 'ES-PV' | 'ES-MD',
+  description: null,
+  location:    null,
+  recurrence:  'none',
 }
 ```
+
+### 4.4 Seed Logic
+
+- On app startup (or first `GET /api/holidays` call), check if holidays for the current year exist.
+- Check: `SELECT COUNT(*) FROM events WHERE type = 'holiday' AND start LIKE 'YYYY-%'`.
+- If count = 0: fetch from Nager.Date, filter + transform, bulk insert.
+- If count > 0: skip — no re-seed.
+- Seed for the current year only on startup. Fetching a future/past year is on-demand via `GET /api/holidays?year=YYYY`.
+
+### 4.5 Constraints
+
+- Holidays cannot be created, edited, or deleted via the Events API (returns 403).
+- Holidays are always all-day.
+- Holiday region field is read-only after creation.
 
 ---
 
@@ -293,376 +287,355 @@ When seeding, set:
 
 ### 5.1 Authorization
 
-Every incoming message/callback is checked against `TELEGRAM_AUTHORIZED_USER_ID`.
-If `ctx.from.id !== authorizedId` → silently ignore (no response, no error sent).
+- Every incoming update (message, callback, command) is checked against `TELEGRAM_AUTHORIZED_USER_ID`.
+- If `update.from.id !== authorizedUserId`: silently ignore (no reply).
+- No error message sent to unauthorized users.
 
 ### 5.2 Commands
 
-| Command | Behavior |
+| Command | Response |
 |---|---|
-| `/hoy` | List today's events (Europe/Madrid date) |
-| `/mañana` | List tomorrow's events |
-| `/semana` | List all events in the current week (Mon–Sun, Madrid time) |
+| `/hoy` | List of today's events formatted in Spanish. If none: "No tienes eventos hoy." |
+| `/mañana` | List of tomorrow's events. If none: "No tienes eventos mañana." |
+| `/semana` | List of this week's events grouped by day. If none: "No tienes eventos esta semana." |
 
-Response format for event lists:
-
+Event list format:
 ```
-📅 *Lunes, 7 de abril de 2026*
+📅 Lunes 7 de abril
 
-• 10:00 — Dentista
-• 14:30 — Reunión de equipo
-• Todo el día — Festivo Nacional
-
-_No hay más eventos hoy._
+• 10:00 - Reunión con equipo
+• 15:30 - Dentista (Clínica Centro)
+• Todo el día - Festivo Nacional
 ```
-
-Empty state: `"No hay eventos para [hoy/mañana/esta semana]."`
 
 ### 5.3 Natural-Language Event Creation (Text)
 
-Any non-command text message is treated as a natural-language event description.
-
-Flow:
-
-1. Receive message text (e.g., "Dentista el jueves a las 10").
-2. Spawn Claude Code subprocess with system prompt instructing it to parse the text
-   into a structured event JSON relative to today's date in Europe/Madrid timezone.
-3. Claude returns JSON:
+1. User sends any non-command text (e.g., `"Dentista el jueves a las 10"`).
+2. Bot passes message to Claude subprocess with event-parsing system prompt.
+3. Claude returns structured JSON:
    ```json
    {
      "title": "Dentista",
-     "start": "2026-04-09T10:00:00+02:00",
-     "end": "2026-04-09T11:00:00+02:00",
-     "all_day": false,
+     "start": "2025-04-10T10:00:00Z",
+     "end": "2025-04-10T11:00:00Z",
      "type": "event",
-     "description": null,
-     "location": null
+     "allDay": false,
+     "location": null,
+     "description": null
    }
    ```
-4. Bot sends a confirmation message with inline keyboard:
+4. Bot sends confirmation message with inline keyboard:
+   ```
+   📅 Dentista
+   Jueves 10 de abril, 10:00 – 11:00
+   
+   [✅ Confirmar]  [✏️ Editar]  [❌ Cancelar]
+   ```
+5. User presses **Confirmar** → `POST /api/events` → "✅ Evento guardado."
+6. User presses **Cancelar** → "Cancelado." No event created.
+7. User presses **Editar** → Bot asks for each field in sequence (see §5.4).
 
+**Claude system prompt for parsing:**
 ```
-📅 *Dentista*
-Jueves, 9 de abril · 10:00–11:00
-
-¿Confirmar este evento?
-[✅ Confirmar]  [✏️ Editar]  [❌ Cancelar]
-```
-
-5. User taps a button → `callback_query` handler:
-   - **Confirmar**: `POST /api/events` → "✅ Evento guardado."
-   - **Editar**: Bot sends a follow-up message asking for a corrected description, then re-parses.
-   - **Cancelar**: "❌ Cancelado." — no event saved.
-
-### 5.4 Claude Parsing System Prompt
-
-```
-You are a calendar assistant. Parse the user's message into a structured event.
-Today is {today} in the Europe/Madrid timezone (UTC+1/UTC+2).
-Return ONLY valid JSON matching this schema — no prose, no markdown fences:
-{
-  "title": string,
-  "start": string (ISO 8601 with timezone offset),
-  "end": string (ISO 8601 with timezone offset, default +1 hour from start),
-  "all_day": boolean,
-  "type": "event" | "meeting" | "birthday" | "reminder",
-  "description": string | null,
-  "location": string | null
-}
-If the message cannot be parsed into an event, return: {"error": "unparseable"}
+You are an assistant that parses Spanish natural-language event descriptions into JSON.
+Return ONLY valid JSON with fields: title, start (ISO 8601 UTC, timezone Europe/Madrid), 
+end (ISO 8601 UTC), type (event|meeting|birthday|reminder), allDay (boolean), 
+location (string|null), description (string|null).
+Today is {currentDate}. If no year is mentioned, assume the nearest future date.
+If no duration is mentioned, assume 1 hour.
 ```
 
-If Claude returns `{"error": "unparseable"}`, bot replies:
-`"No he podido entender eso como un evento. Intenta con: 'Dentista el jueves a las 10'."`
+**If Claude fails or returns invalid JSON:** reply "No pude entender el evento. Por favor, intenta de nuevo."
 
-### 5.5 Edit Flow
+### 5.4 Telegram Edit Flow
 
-When the user taps ✏️ Editar:
+When user presses ✏️ Editar:
+1. Bot asks: "¿Qué título quieres? (actual: {title})" — user can reply or send "-" to keep.
+2. Bot asks: "¿Fecha y hora de inicio?" — user can reply or "-".
+3. Bot asks: "¿Fecha y hora de fin?" — user can reply or "-".
+4. Bot asks: "¿Tipo? (event/meeting/birthday/reminder)" — user can reply or "-".
+5. After all fields collected, show confirmation again (step 4 of §5.3 flow).
 
-1. Bot: "¿Cómo quieres modificarlo? Escribe la descripción corregida."
-2. Next text message from the authorized user is treated as a correction (bot enters
-   a per-user "editing" state stored in memory, keyed by chat ID).
-3. Re-run through Claude parsing (same flow as §5.3).
-4. State is cleared after Confirmar or Cancelar.
+State machine is in-memory (Map keyed by chat_id). Lost on server restart.
+
+### 5.5 Voice Messages
+
+See §6.
+
+### 5.6 Inline Keyboard Callbacks
+
+Callback data format: `confirm:{tempId}`, `edit:{tempId}`, `cancel:{tempId}`.
+
+`tempId` is a short-lived UUID stored in-memory alongside the parsed event JSON. Expires after 30 minutes or on first use.
 
 ---
 
 ## 6. Voice Message Handling
 
-### 6.1 Flow
-
-1. Bot receives a voice message (`message.voice`).
-2. Download the OGG/Opus file via Telegram Bot API `getFile` + file URL.
-3. Save temporarily to `/tmp/voice_{timestamp}.ogg`.
-4. Invoke Whisper to transcribe:
-   - mlx-whisper: `mlx_whisper /tmp/voice_{timestamp}.ogg --model {WHISPER_MODEL}`
-   - whisper.cpp: `./whisper.cpp/main -m models/ggml-{WHISPER_MODEL}.bin -f /tmp/voice_{timestamp}.ogg`
-5. Parse Whisper stdout for the transcription text.
-6. Delete the temp file.
-7. Treat the transcription as a text message → continue with §5.3 flow.
-8. If transcription fails or returns empty: reply
-   `"No pude transcribir el audio. Intenta enviar un mensaje de texto."`
-
-### 6.2 Whisper Backend Selection
-
-- Controlled by `WHISPER_BACKEND` env var: `mlx-whisper` (Apple Silicon) or `whisper.cpp`.
-- `lib/whisper.ts` exposes a single `transcribe(filePath: string): Promise<string>` function
-  that dispatches based on the env var.
+1. User sends voice message (OGG/Opus format from Telegram).
+2. Bot downloads audio file from Telegram servers.
+3. Saves to temp file: `/tmp/tg_voice_{timestamp}.ogg`.
+4. Invokes Whisper:
+   ```bash
+   # mlx-whisper
+   mlx_whisper --model {WHISPER_MODEL} --language Spanish {tempFile}
+   
+   # whisper.cpp
+   whisper-cli -m models/{WHISPER_MODEL}.bin -l es {tempFile}
+   ```
+5. Reads transcription from stdout.
+6. Deletes temp file.
+7. Treats transcription as a text message — passes to Claude for event parsing (§5.3 step 2 onward).
+8. If transcription is empty or Whisper fails: reply "No pude transcribir el audio. Por favor, envía un mensaje de texto."
 
 ---
 
-## 7. AI Daily Summaries
+## 7. AI Daily Summary
 
-### 7.1 Cron Job
+### 7.1 Cron Schedule
 
-Scheduled via node-cron using `DAILY_SUMMARY_CRON` env var (default `0 8 * * *`).
-Executes in the Europe/Madrid timezone context.
+- Default: `0 8 * * *` (8:00 AM, node-cron, Madrid timezone via `tz` option).
+- Override via `DAILY_SUMMARY_CRON` env var.
+- Runs in the Next.js process via `lib/cron.ts` which is imported in a server-side initializer.
 
-Job steps:
+### 7.2 Summary Generation
 
-1. Fetch today's events (Europe/Madrid date) from DB.
+1. Fetch today's events (full day, Madrid tz).
 2. Fetch tomorrow's events.
-3. Fetch events with `type='birthday'` within the next 3 days.
+3. Fetch events in the next 3 days where `type = 'birthday'`.
 4. Build a plain-text context block:
    ```
-   HOY ({date}): [list of events]
-   MAÑANA ({date}): [list of events]
-   PRÓXIMOS CUMPLEAÑOS: [list]
+   Hoy (lunes 7 de abril):
+   - 10:00 Reunión con equipo
+   - 15:30 Dentista
+   
+   Mañana (martes 8 de abril):
+   - Todo el día: Festivo (Lunes de Pascua)
+   
+   Próximos cumpleaños:
+   - María García — pasado mañana (9 de abril)
    ```
-5. Spawn Claude Code with a system prompt instructing a friendly Spanish summary.
-6. Store result in `summaries` table (upsert by date).
-7. Send the summary text via Telegram to the authorized user.
+5. Call Claude subprocess with Spanish summary system prompt:
+   ```
+   Eres un asistente personal. Basándote en los eventos, genera un resumen 
+   diario amigable en español. Sé breve (2-4 frases). Incluye los eventos 
+   más importantes de hoy, menciona si mañana hay algo destacable, y felicita 
+   por los cumpleaños próximos si los hay.
+   ```
+6. Upsert result to `summaries` table: `INSERT OR REPLACE INTO summaries (date, content, generated_at)`.
+7. Send summary text via Telegram to authorized user.
 
-### 7.2 Claude Summary System Prompt
+### 7.3 Summary Banner (UI)
 
 ```
-Eres un asistente de calendario personal. Genera un resumen amigable y conciso
-en español del día para el usuario. Usa un tono cálido y cercano. 
-Incluye: eventos de hoy, una mención de mañana, y recuerda los cumpleaños próximos.
-Máximo 3 párrafos. No uses markdown ni listas — prosa natural.
+┌─────────────────────────────────────────────────────────────────┐
+│ 📋 Resumen del día                           [🔄 Regenerar]     │
+│                                                                   │
+│ Hoy tienes una reunión a las 10 y el dentista a las 15:30.       │
+│ Mañana es festivo. ¡Recuerda que es el cumpleaños de María       │
+│ en 2 días!                                                        │
+│                                             Generado: 08:00      │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.3 Summary UI
-
-A banner card appears at the top of the calendar page (above the main view area).
-
-Layout:
-```
-┌─────────────────────────────────────────────────────────┐
-│ 📋 Resumen del día                      [🔄 Regenerar]  │
-│                                                          │
-│ Hoy tienes una reunión a las 10 y el dentista a las 15. │
-│ Mañana tienes el día libre. ¡Feliz cumpleaños a María   │
-│ en 2 días!                                              │
-│                                         Generado 08:00  │
-└─────────────────────────────────────────────────────────┘
-```
-
-- Displayed when a summary exists for today.
-- Hidden with a subtle collapsed state if no summary yet ("Aún no hay resumen para hoy").
-- **[🔄 Regenerar]** button: `POST /api/summary` → regenerates the summary → updates the banner.
-- Regeneration shows a loading spinner on the button while running.
-
-### 7.4 Summary Fetch
-
-On calendar page load: `GET /api/summary?date=YYYY-MM-DD` returns today's summary or 404.
+- Fetched via `GET /api/summary?date=YYYY-MM-DD` (today in Madrid tz).
+- Hidden if API returns 404 (no summary yet).
+- `[🔄 Regenerar]` button calls `POST /api/summary { date }` with loading spinner.
+- On regeneration success: update banner content, update timestamp.
+- On regeneration failure (503): show inline error "No se pudo regenerar el resumen."
+- Positioned above the calendar header.
 
 ---
 
 ## 8. Dark Mode
 
-- Toggle button in the header (sun/moon icon).
-- Implementation: toggle `dark` class on `<html>` element.
-- State persisted in `localStorage` key `theme`: `'dark'` | `'light'`.
-- Respects system preference as initial default if no `localStorage` value.
-- All components must have `dark:` variants for backgrounds, text, borders.
-- Color palette:
-  - Light: white backgrounds, gray-800 text.
-  - Dark: gray-900 backgrounds, gray-100 text, gray-700 borders.
+- Toggle button in header (moon/sun icon).
+- Adds/removes `dark` class on `<html>` element.
+- Tailwind `darkMode: 'class'` — all dark variants activated by this class.
+- Preference stored in `localStorage` key `calendar_theme`.
+- On initial load: read `localStorage`, apply before first render to prevent flash.
+- Default: system preference (`prefers-color-scheme`), falling back to light if not set.
 
 ---
 
-## 9. API Endpoints
+## 9. API Specification
 
-All endpoints return `Content-Type: application/json`.
+### 9.1 GET /api/events
 
-### 9.1 Events
+Query parameters:
 
-#### `GET /api/events`
-
-Query params:
-
-| Param | Type | Description |
-|---|---|---|
-| `start` | ISO date string | Filter events starting on or after this date |
-| `end` | ISO date string | Filter events ending on or before this date |
-| `types` | comma-separated | Filter by event type(s) |
-| `regions` | comma-separated | Filter by holiday region(s) |
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `start` | ISO 8601 | Yes | Range start (UTC) |
+| `end` | ISO 8601 | Yes | Range end (UTC) |
+| `types` | csv | No | e.g. `event,meeting,birthday` |
+| `regions` | csv | No | e.g. `national,ES-PV` |
 
 Response `200`:
 ```json
-{ "data": [Event, ...] }
+{
+  "data": [
+    {
+      "id": "42",
+      "title": "Reunión",
+      "start": "2025-04-07T08:00:00Z",
+      "end": "2025-04-07T09:00:00Z",
+      "allDay": false,
+      "type": "meeting",
+      "color": "#22C55E",
+      "description": null,
+      "location": "Sala A",
+      "recurrence": "none",
+      "region": null
+    }
+  ]
+}
 ```
 
-Notes:
-- Recurring events are expanded within the requested range.
-- Holidays are included unless excluded by `types` filter.
+Recurring events are expanded — each occurrence is a separate object with `id: "42_2025-04-07"`.
 
-#### `POST /api/events`
+If `types` is omitted, all types are returned (including holidays). If `regions` is omitted and `types` includes `holiday`, holidays of `region = 'national'` are returned by default — UI must explicitly pass region params to control this.
 
-Body: Event fields (all optional except `title`, `start`, `end`).
+### 9.2 POST /api/events
+
+Body (JSON): `NewEvent` shape — all fields from §2.1 except `id`, `createdAt`, `updatedAt`.
 
 Response `201`:
 ```json
-{ "data": Event }
+{ "data": { ...createdEvent } }
 ```
 
-Error `400`:
-```json
-{ "error": "Validation error: end must be after start" }
-```
+Errors:
+- `400` — missing required fields or `end < start`
+- `400` — attempt to set `type: 'holiday'`
 
-#### `GET /api/events/:id`
+### 9.3 PATCH /api/events/:id
 
-Response `200`: `{ "data": Event }` or `404`: `{ "error": "Not found" }`
+Body: partial `Event` — only fields to update.
 
-#### `PATCH /api/events/:id`
+Response `200`: `{ "data": { ...updatedEvent } }`
 
-Body: Partial event fields.
+Errors:
+- `403` — event is a holiday
+- `404` — not found
+- `400` — invalid field values
 
-Response `200`: `{ "data": Event }` or `404`.
+### 9.4 DELETE /api/events/:id
 
-#### `DELETE /api/events/:id`
+Response `200`: `{ "data": { "deleted": true } }`
 
-Response `204` (no body) or `404`.
+Errors:
+- `403` — event is a holiday
+- `404` — not found
 
-Constraint: holidays (`type='holiday'`) cannot be deleted — return `403`:
-```json
-{ "error": "Holiday events cannot be deleted" }
-```
+### 9.5 GET /api/summary
 
-### 9.2 Holidays
-
-#### `GET /api/holidays`
-
-Query params: `year` (integer, defaults to current year).
-
-Triggers seed if no holidays for that year exist in DB.
+Query: `?date=YYYY-MM-DD`
 
 Response `200`:
 ```json
-{ "data": [Event, ...] }
+{
+  "data": {
+    "date": "2025-04-07",
+    "content": "Hoy tienes una reunión...",
+    "generatedAt": "2025-04-07T06:00:00Z"
+  }
+}
 ```
 
-### 9.3 Summary
+Response `404`: `{ "error": "No summary for this date" }`
 
-#### `GET /api/summary`
+### 9.6 POST /api/summary
 
-Query params: `date` (YYYY-MM-DD, defaults to today in Madrid timezone).
+Body: `{ "date": "YYYY-MM-DD" }`
 
-Response `200`: `{ "data": Summary }` or `404`: `{ "error": "No summary for this date" }`
+Response `200`: `{ "data": { ...summary } }`
 
-#### `POST /api/summary`
+Errors:
+- `400` — missing or invalid date
+- `503` — Claude subprocess failed
 
-Body: `{ "date": "YYYY-MM-DD" }` (optional, defaults to today).
+### 9.7 POST /api/telegram/webhook
 
-Triggers regeneration (fetches events, calls Claude, upserts DB, returns new summary).
+Body: Telegram Update object.
 
-Response `200`: `{ "data": Summary }`
-
-May return `503` if Claude subprocess fails:
-```json
-{ "error": "Summary generation failed. Try again later." }
-```
-
-### 9.4 Telegram Webhook
-
-#### `POST /api/telegram/webhook`
-
-Receives Telegram update objects. No response body needed — returns `200` immediately.
-
-Authentication: Telegram sends updates only to the registered webhook URL.
-Optional: validate `X-Telegram-Bot-Api-Secret-Token` header if configured.
+Response `200` always (Telegram requires 200 even on processing errors — errors are handled internally).
 
 ---
 
-## 10. Error Handling Specifications
+## 10. Error Handling
 
-### API Errors
+### API Layer
 
-| Scenario | Status | Response |
-|---|---|---|
-| Invalid request body | 400 | `{ "error": "..." }` |
-| Resource not found | 404 | `{ "error": "Not found" }` |
-| Forbidden operation | 403 | `{ "error": "..." }` |
-| External API failure (Nager.Date) | 502 | `{ "error": "Holiday API unavailable" }` |
-| AI subprocess failure | 503 | `{ "error": "AI service unavailable" }` |
-| Unexpected server error | 500 | `{ "error": "Internal server error" }` |
+```ts
+export async function GET(req: NextRequest) {
+  try {
+    // ... logic
+    return NextResponse.json({ data: result })
+  } catch (e) {
+    console.error('[api/events GET]', e)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+```
 
-### Bot Errors
+- Never expose stack traces or internal error details in API responses.
+- Log full errors server-side with route prefix for grep-ability.
 
-| Scenario | Bot Response |
-|---|---|
-| Whisper transcription fails | "No pude transcribir el audio. Intenta con texto." |
-| Claude parsing returns `{"error":"unparseable"}` | "No entendí eso como un evento. Ej: 'Reunión el lunes a las 15'." |
-| Claude subprocess crashes | "Hubo un problema procesando tu mensaje. Inténtalo de nuevo." |
-| DB write fails | "Error al guardar el evento. Inténtalo de nuevo." |
+### Telegram Bot
 
-### UI Errors
+- Any unhandled error in a handler → catch → send "Ha ocurrido un error. Por favor, intenta de nuevo." → log full error.
+- Claude parsing failure → specific message: "No pude entender el evento."
+- Whisper failure → specific message: "No pude transcribir el audio."
+- Network failure fetching from Telegram → log + retry once.
 
-- Failed event fetch: show "Error cargando eventos." inline in the view with a Retry button.
-- Failed event creation/edit: show toast notification with error message.
-- Failed summary fetch: silently hide the summary banner (do not show an error card).
+### UI
+
+- SWR error state → show inline error message near the affected area (not a full-page error).
+- EventForm submit failure → inline error, keep form open with data intact.
+- Summary regeneration failure → inline error in SummaryBanner.
 
 ---
 
 ## 11. Edge Cases and Constraints
 
-### Dates & Times
-
-- All-day events: `start` and `end` stored as `YYYY-MM-DDT00:00:00Z`. UI shows date only.
-- Events spanning midnight: valid — end > start, may span multiple days.
-- Events with identical start/end: treated as zero-duration (instantaneous), displayed as a point marker.
-- Past events: displayed normally. No restriction on creating events in the past.
-
-### Recurrence
-
-- Recurrence expansion capped at 2 years beyond the query end date to avoid infinite loops.
-- If a recurring event's expanded occurrence falls on the same date as a holiday, both are shown independently.
-
-### Holidays
-
-- If Nager.Date API is unreachable on startup, log the failure and continue without seeding. The app remains functional; holidays simply won't appear until the next successful seed.
-- Do not re-fetch holidays if they already exist for the year, even if `GET /api/holidays` is called multiple times.
-- If a holiday's `counties` array contains a region other than ES-PV or ES-MD, skip it.
-
-### Telegram Bot
-
-- If the same user sends multiple messages rapidly, each is processed independently (no deduplication).
-- The "editing" state (§5.5) is in-memory. If the server restarts during an edit flow, the state is lost. The user must start over — no explicit handling needed.
-- Voice files > 20 MB are rejected by Telegram before reaching the bot (Telegram limit).
-
-### Summary Generation
-
-- If no events exist for today or tomorrow, Claude should still generate a short friendly note ("Tienes el día libre.").
-- If the cron job runs but a summary already exists for today (e.g., manually regenerated earlier), the cron job upserts (overwrites) the existing summary.
+| Scenario | Behavior |
+|---|---|
+| Event `end < start` | API returns 400; form prevents submission |
+| Create event overlapping existing | Allowed — no conflict detection |
+| Delete a recurring event | Deletes the base record; all expansions disappear |
+| Edit a single occurrence of recurring event | Not supported (future feature) |
+| Telegram pending edit expires (30 min) | Callback returns "Esta acción ha expirado. Por favor, intenta de nuevo." |
+| Nager.Date API unreachable at startup | Log warning, continue without holidays; next request retries |
+| Claude subprocess not found in PATH | API returns 503; bot sends error message |
+| Whisper binary not found | Bot sends "El servicio de transcripción no está disponible." |
+| Holiday seed runs for already-seeded year | Count check prevents duplicate insert |
+| User attempts to create `type: holiday` via API | 400 |
+| User attempts to delete `type: holiday` via API | 403 |
+| Summary requested for a date with no events | Claude generates "No tienes eventos para hoy." style message |
+| Timezone edge: event at 23:00 Madrid = next day UTC | Stored as UTC; display in Madrid tz handles correctly |
+| `allDay` event time pickers | Hidden in UI; stored as `00:00:00Z` / `23:59:59Z` |
+| Mini calendar month navigation vs. main calendar | Independent — mini calendar month nav does not affect main view |
+| Multiple holiday regions active simultaneously | All active regions' holidays are fetched and displayed |
 
 ---
 
-## 12. Future Features / Backlog
+## 12. Backlog / Future Features
 
-These were not in the Commander's initial briefing but are natural extensions.
-Do not implement without explicit orders.
+These are explicitly out of scope for initial implementation but mentioned in the briefing or implied by design decisions:
 
-- **Multi-user support**: currently single-user by design.
-- **Per-occurrence recurrence editing**: "edit this event only" vs. "edit all" for recurring events.
-- **Event invitations / sharing**: send event details to others via Telegram.
-- **iCal import/export**: `.ics` file support.
-- **Google Calendar sync**: two-way sync via Google Calendar API.
-- **Push notifications**: browser push for event reminders.
-- **Drag-to-reschedule**: drag existing events to a new time slot.
-- **Resize-to-extend**: drag the bottom edge of an event block to change its end time.
-- **Additional holiday regions**: support more Spanish autonomous communities.
-- **Multi-year holiday seeding**: pre-seed next year's holidays in December.
-- **Summary history**: view past daily summaries in a dedicated page.
-- **Natural-language date navigation**: "show me next month" in the bot.
+- **Edit single occurrence** of a recurring event (vs. edit all)
+- **Delete single occurrence** of a recurring event
+- **Drag-and-drop** to move events to different days/times
+- **Resize events** by dragging their bottom edge in week/day view
+- **Event search** — full-text search across title, description, location
+- **Multi-year holiday seeding** — proactively seed next year's holidays in December
+- **Export to iCal** — `.ics` file download
+- **Import from iCal** — parse `.ics` uploads
+- **Multiple calendars / categories** beyond the current type system
+- **Shared access** — multiple users or read-only sharing via link
+- **Push notifications** — browser notifications for upcoming events
+- **Telegram groups** — currently single-user only
+- **SMS/email fallback** if Telegram is unreachable
+- **Event attachments** — file uploads linked to events
+- **Google Calendar sync** — bidirectional CalDAV or API sync
