@@ -1,81 +1,142 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --surface: #f9fafb;
-  --surface-elevated: #ffffff;
-  --border: #e5e7eb;
-  --border-muted: #f3f4f6;
-  --text-muted: #6b7280;
-  --text-dimmed: #9ca3af;
-  --ring: #3b82f6;
-  --input-bg: #ffffff;
-  --input-border: #d1d5db;
-  --hover: #f3f4f6;
-}
-
-.dark {
-  --background: #0f0f1a;
-  --foreground: #e5e7eb;
-  --surface: #1a1a2e;
-  --surface-elevated: #222240;
-  --border: #2d2d4a;
-  --border-muted: #1f1f36;
-  --text-muted: #9ca3af;
-  --text-dimmed: #6b7280;
-  --ring: #60a5fa;
-  --input-bg: #1a1a2e;
-  --input-border: #2d2d4a;
-  --hover: #222240;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* shadcn-compatible base tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-elevated: var(--surface-elevated);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
   --color-border: var(--border);
-  --color-border-muted: var(--border-muted);
-  --color-text-muted: var(--text-muted);
-  --color-text-dimmed: var(--text-dimmed);
+  --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-input-bg: var(--input-bg);
-  --color-input-border: var(--input-border);
-  --color-hover: var(--hover);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Font stacks */
+  --font-sans: var(--font-share-tech-mono), monospace;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
+
+  /* Ghost Ops V2 — tactical palette */
+  --color-dr-bg:       #0a0a0c;
+  --color-dr-surface:  #111114;
+  --color-dr-elevated: #1a1a22;
+  --color-dr-hover:    #22222e;
+  --color-dr-border:   #2a2a32;
+  --color-dr-border-hover: #3a3a5a;
+  --color-dr-border-focus: #00ff41;
+  --color-dr-text:     #e0e0e8;
+  --color-dr-secondary: #b8b8c8;
+  --color-dr-muted:    #8888a0;
+  --color-dr-dim:      #555570;
+  --color-dr-green:    #00ff41;
+  --color-dr-amber:    #ffbf00;
+  --color-dr-red:      #ff3333;
+  --color-dr-blue:     #00aaff;
+  --color-dr-teal:     #00d4aa;
+
+  /* Tactical fonts */
+  --font-tactical: var(--font-share-tech-mono), monospace;
+  --font-data:     var(--font-courier-prime), monospace;
+
+  /* Glow shadows */
+  --shadow-glow-green: 0 0 20px rgba(0, 255, 65, 0.3);
+  --shadow-glow-amber: 0 0 20px rgba(255, 191, 0, 0.3);
+  --shadow-glow-red:   0 0 20px rgba(255, 51, 51, 0.3);
+  --shadow-glow-blue:  0 0 20px rgba(0, 170, 255, 0.3);
+  --shadow-glow-teal:  0 0 20px rgba(0, 212, 170, 0.3);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+/* Dark-only: tactical palette applied at :root */
+:root {
+  --background: #0a0a0c;
+  --foreground: #e0e0e8;
+  --card: #111114;
+  --card-foreground: #e0e0e8;
+  --popover: #111114;
+  --popover-foreground: #e0e0e8;
+  --primary: #00ff41;
+  --primary-foreground: #0a0a0c;
+  --secondary: #1a1a22;
+  --secondary-foreground: #e0e0e8;
+  --muted: #1a1a22;
+  --muted-foreground: #8888a0;
+  --accent: #1a1a22;
+  --accent-foreground: #e0e0e8;
+  --destructive: #ff3333;
+  --border: #2a2a32;
+  --input: #2a2a32;
+  --ring: #00ff41;
+  --radius: 0rem;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+@layer base {
+  /* Force zero border-radius globally */
+  *, *::before, *::after {
+    border-radius: 0 !important;
+  }
 
-::-webkit-scrollbar-track {
-  background: var(--surface);
-}
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
+  html, body {
+    overflow-x: hidden;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-dimmed);
-}
+  body {
+    @apply bg-dr-bg text-dr-text font-tactical antialiased;
+  }
 
-/* Focus ring utility */
-*:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  /* Green-tinted text selection */
+  ::selection {
+    background: rgba(0, 255, 65, 0.2);
+    color: #00ff41;
+  }
+
+  /* Custom scrollbar — dark tactical theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a0c;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a2a32;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00ff41;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2a2a32 #0a0a0c;
+  }
+
+  /* Hide scrollbar utility */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Focus ring */
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
