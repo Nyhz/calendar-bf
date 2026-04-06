@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { summaries } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { events, summaries } from '@/lib/db/schema'
+import { generateDailySummary } from '@/lib/claude'
+import { eq, and, gte, lte } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     if (!summary) {
       return NextResponse.json(
-        { error: 'No summary for this date' },
+        { error: 'No summary found' },
         { status: 404 }
       )
     }
@@ -34,9 +35,61 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST() {
-  return NextResponse.json(
-    { error: 'Summary generation not available — Claude integration pending' },
-    { status: 503 }
-  )
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { date } = body
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json(
+        { error: 'Missing or invalid date field (expected YYYY-MM-DD)' },
+        { status: 400 }
+      )
+    }
+
+    const start = `${date}T00:00:00Z`
+    const end = `${date}T23:59:59Z`
+
+    const dayEvents = await db
+      .select()
+      .from(events)
+      .where(and(gte(events.start, start), lte(events.start, end)))
+
+    const summaryEvents = dayEvents.map((ev) => ({
+      title: ev.title,
+      start: ev.start,
+      end: ev.end,
+      type: ev.type,
+      location: ev.location,
+    }))
+
+    let content: string
+    try {
+      content = await generateDailySummary(date, summaryEvents)
+    } catch (error) {
+      console.error('[Summary] Claude generation failed:', error)
+      return NextResponse.json(
+        { error: 'Summary generation failed' },
+        { status: 503 }
+      )
+    }
+
+    await db
+      .insert(summaries)
+      .values({ date, content })
+      .onConflictDoUpdate({
+        target: summaries.date,
+        set: { content, generatedAt: new Date().toISOString() },
+      })
+
+    const [summary] = await db
+      .select()
+      .from(summaries)
+      .where(eq(summaries.date, date))
+
+    return NextResponse.json({ data: summary })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
