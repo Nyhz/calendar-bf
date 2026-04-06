@@ -2,6 +2,7 @@
 
 import { MiniCalendar } from './MiniCalendar'
 import { TYPE_COLORS } from '@/lib/db/schema'
+import { cn } from '@/components/ui/utils'
 
 type Filters = {
   types: string[]
@@ -47,71 +48,104 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
   }
 
   return (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex h-full flex-col gap-6 border-r border-dr-border bg-dr-surface">
       {/* Section 1: Mini Calendar */}
-      <MiniCalendar currentDate={currentDate} onDateSelect={onDateSelect} />
+      <div className="px-3 pt-4">
+        <MiniCalendar currentDate={currentDate} onDateSelect={onDateSelect} />
+      </div>
 
       {/* Section 2: Event type filters */}
-      <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      <div className="px-3">
+        <h3 className="mb-2 font-tactical text-[10px] uppercase tracking-widest text-dr-secondary">
           Event types
         </h3>
-        <ul className="space-y-1">
-          {EVENT_TYPES.map(({ key, label }) => (
-            <li key={key}>
-              <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-800">
-                <input
-                  type="checkbox"
-                  checked={filters.types.includes(key)}
-                  onChange={() => toggleType(key)}
-                  className="sr-only"
-                />
-                <span
-                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded ${
-                    filters.types.includes(key) ? '' : 'opacity-30'
-                  }`}
-                  style={{ backgroundColor: TYPE_COLORS[key] }}
-                  aria-hidden="true"
-                >
-                  {filters.types.includes(key) && (
-                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </span>
-                <span className="text-sm">{label}</span>
-              </label>
-            </li>
-          ))}
+        <ul className="space-y-0.5">
+          {EVENT_TYPES.map(({ key, label }) => {
+            const checked = filters.types.includes(key)
+            return (
+              <li key={key}>
+                <label className="flex cursor-pointer items-center gap-2 px-2 py-1.5 transition-colors hover:bg-dr-hover">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleType(key)}
+                    className="sr-only"
+                  />
+                  <span
+                    className={cn(
+                      'flex h-4 w-4 shrink-0 items-center justify-center border transition-colors',
+                      checked ? 'border-transparent' : 'border-dr-border opacity-40',
+                    )}
+                    style={{ backgroundColor: checked ? TYPE_COLORS[key] : 'transparent' }}
+                    aria-hidden="true"
+                  >
+                    {checked && (
+                      <svg className="h-3 w-3 text-dr-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span
+                    className="mr-1 h-2 w-2 shrink-0"
+                    style={{ backgroundColor: TYPE_COLORS[key] }}
+                    aria-hidden="true"
+                  />
+                  <span className="font-data text-sm text-dr-secondary">{label}</span>
+                </label>
+              </li>
+            )
+          })}
         </ul>
       </div>
 
+      {/* Divider */}
+      <div className="mx-3 border-t border-dr-border" />
+
       {/* Section 3: Holiday region toggles */}
-      <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      <div className="px-3">
+        <h3 className="mb-2 font-tactical text-[10px] uppercase tracking-widest text-dr-secondary">
           Holiday regions
         </h3>
-        <ul className="space-y-1">
-          {HOLIDAY_REGIONS.map(({ key, label }) => (
-            <li key={key}>
-              <label
-                className={`flex items-center gap-2 rounded px-2 py-1 ${
-                  holidayEnabled
-                    ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
-                    : 'cursor-not-allowed opacity-40'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={filters.regions.includes(key)}
-                  onChange={() => toggleRegion(key)}
-                  disabled={!holidayEnabled}
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-red-500 accent-red-500 disabled:opacity-50"
-                />
-                <span className="text-sm">{label}</span>
-              </label>
-            </li>
-          ))}
+        <ul className="space-y-0.5">
+          {HOLIDAY_REGIONS.map(({ key, label }) => {
+            const checked = filters.regions.includes(key)
+            return (
+              <li key={key}>
+                <label
+                  className={cn(
+                    'flex items-center gap-2 px-2 py-1.5 transition-colors',
+                    holidayEnabled
+                      ? 'cursor-pointer hover:bg-dr-hover'
+                      : 'cursor-not-allowed opacity-40',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleRegion(key)}
+                    disabled={!holidayEnabled}
+                    className="sr-only"
+                  />
+                  <span
+                    className={cn(
+                      'flex h-4 w-4 shrink-0 items-center justify-center border transition-colors',
+                      checked && holidayEnabled
+                        ? 'border-dr-green bg-dr-green/20'
+                        : 'border-dr-border',
+                    )}
+                    aria-hidden="true"
+                  >
+                    {checked && (
+                      <svg className="h-3 w-3 text-dr-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="font-data text-sm text-dr-secondary">{label}</span>
+                </label>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </div>

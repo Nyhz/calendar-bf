@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { cn } from '@/components/ui/utils'
 
 type MiniCalendarProps = {
   currentDate: Date
@@ -50,17 +51,17 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
       <div className="mb-2 flex items-center justify-between">
         <button
           onClick={goPrevMonth}
-          className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="border border-dr-border p-1 text-dr-muted transition-colors hover:border-dr-dim hover:text-dr-green"
           aria-label="Previous month"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span className="text-sm font-medium capitalize">{headerLabel}</span>
+        <span className="font-tactical text-sm uppercase tracking-wider text-dr-text">{headerLabel}</span>
         <button
           onClick={goNextMonth}
-          className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="border border-dr-border p-1 text-dr-muted transition-colors hover:border-dr-dim hover:text-dr-green"
           aria-label="Next month"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -72,8 +73,8 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
       <table className="w-full text-center text-xs" role="grid" aria-label="Mini calendar">
         <thead>
           <tr>
-            {DAY_LABELS.map(label => (
-              <th key={label} className="py-1 font-medium text-gray-500 dark:text-gray-400" scope="col">
+            {DAY_LABELS.map((label, i) => (
+              <th key={i} className="py-1 font-tactical text-[10px] uppercase tracking-wider text-dr-dim" scope="col">
                 {label}
               </th>
             ))}
@@ -91,15 +92,16 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
                   <td key={di} className="p-0">
                     <button
                       onClick={() => onDateSelect(date)}
-                      className={`h-7 w-7 rounded-full text-xs transition-colors ${
+                      className={cn(
+                        'h-7 w-7 font-data text-xs transition-colors',
                         isSelected
-                          ? 'bg-blue-500 font-semibold text-white'
+                          ? 'border border-dr-green bg-dr-green/10 font-semibold text-dr-green shadow-glow-green'
                           : isToday
-                            ? 'bg-blue-100 font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            ? 'bg-dr-green font-semibold text-dr-bg'
                             : isCurrentMonth
-                              ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                              : 'text-gray-400 hover:bg-gray-100 dark:text-gray-600 dark:hover:bg-gray-800'
-                      }`}
+                              ? 'text-dr-secondary hover:bg-dr-hover'
+                              : 'text-dr-dim hover:bg-dr-hover',
+                      )}
                       aria-label={date.toLocaleDateString('en-US')}
                     >
                       {date.getDate()}
