@@ -98,11 +98,9 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
           return (
             <div
               key={i}
-              className="flex min-h-24 flex-col border-b border-r border-gray-200 p-1 dark:border-gray-700"
-              onClick={(e) => {
-                if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.cellBg) {
-                  onCreateEvent(day)
-                }
+              className="flex min-h-24 cursor-pointer flex-col border-b border-r border-gray-200 p-1 dark:border-gray-700"
+              onClick={() => {
+                onCreateEvent(day)
               }}
             >
               <span
@@ -117,7 +115,7 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
                 {day.getDate()}
               </span>
 
-              <div className="flex flex-1 flex-col gap-0.5 overflow-hidden" data-cell-bg="true">
+              <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
                 {visibleEvents.map(event => (
                   <button
                     key={`${event.id}`}
