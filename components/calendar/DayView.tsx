@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useEffect, useState } from 'react'
+import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
@@ -137,16 +138,19 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
   return (
     <div className="flex h-full flex-col">
       {/* Day header */}
-      <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <h3 className="text-lg font-semibold capitalize text-gray-900 dark:text-gray-100">
+      <div className="border-b border-dr-border px-4 py-3">
+        <h3 className={cn(
+          'font-tactical text-lg uppercase tracking-widest',
+          isToday ? 'text-dr-green' : 'text-dr-text'
+        )}>
           {headerFmt.format(currentDate)}
         </h3>
       </div>
 
       {/* All-day strip */}
       {allDayEvents.length > 0 && (
-        <div className="flex border-b border-gray-200 px-4 py-1 dark:border-gray-700">
-          <span className="mr-4 self-center text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex border-b border-dr-border bg-dr-surface px-4 py-1">
+          <span className="mr-4 self-center font-tactical text-xs uppercase tracking-wider text-dr-muted">
             All day
           </span>
           <div className="flex flex-1 flex-wrap gap-1">
@@ -154,8 +158,11 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
               <button
                 key={`${event.id}`}
                 onClick={() => onSelectEvent(event)}
-                className="truncate rounded px-2 py-0.5 text-xs text-white"
-                style={{ backgroundColor: event.color }}
+                className="truncate border-l-3 px-2 py-0.5 font-tactical text-xs uppercase text-dr-text"
+                style={{
+                  borderLeftColor: event.color,
+                  backgroundColor: `${event.color}1a`,
+                }}
                 title={event.title}
               >
                 {event.title}
@@ -172,7 +179,7 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
           {hours.map(h => (
             <div
               key={h}
-              className="flex items-start justify-end pr-2 text-xs text-gray-500 dark:text-gray-400"
+              className="flex items-start justify-end pr-2 font-data text-xs text-dr-muted"
               style={{ height: HOUR_HEIGHT }}
             >
               <span className="-mt-2">{h.toString().padStart(2, '0')}:00</span>
@@ -182,16 +189,17 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
 
         {/* Single day column */}
         <div
-          className={`relative flex-1 border-l border-gray-200 dark:border-gray-700 ${
-            isToday ? 'bg-blue-50/50 dark:bg-blue-950/30' : ''
-          }`}
+          className={cn(
+            'relative flex-1 border-l border-dr-border',
+            isToday && 'bg-dr-green/[0.03]'
+          )}
           style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}
         >
           {/* Hour grid lines */}
           {hours.map(h => (
             <div
               key={h}
-              className="border-b border-gray-100 dark:border-gray-800"
+              className="cursor-pointer border-b border-dr-border hover:bg-dr-hover"
               style={{ height: HOUR_HEIGHT }}
               onClick={() => {
                 const d = new Date(currentDate)
@@ -204,10 +212,13 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
           {/* Current time indicator */}
           {isToday && (
             <div
-              className="absolute left-0 right-0 z-20 border-t-2 border-red-500"
-              style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
+              className="absolute left-0 right-0 z-20 border-t-2 border-dr-red"
+              style={{
+                top: (nowMinutes / 60) * HOUR_HEIGHT,
+                boxShadow: '0 0 8px rgba(255, 51, 51, 0.5)',
+              }}
             >
-              <div className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
+              <div className="absolute -left-1.5 -top-1.5 h-3 w-3 bg-dr-red" />
             </div>
           )}
 
@@ -226,9 +237,10 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
                   e.stopPropagation()
                   onSelectEvent(event)
                 }}
-                className="absolute z-10 overflow-hidden rounded px-1 py-0.5 text-left text-xs text-white"
+                className="absolute z-10 overflow-hidden border-l-3 px-1 py-0.5 text-left text-xs"
                 style={{
-                  backgroundColor: event.color,
+                  borderLeftColor: event.color,
+                  backgroundColor: `${event.color}1a`,
                   top,
                   height: Math.max(height, HALF_HOUR_HEIGHT),
                   left: `${left}%`,
@@ -236,8 +248,8 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
                 }}
                 title={event.title}
               >
-                <div className="truncate font-medium">{event.title}</div>
-                <div className="truncate opacity-90">
+                <div className="truncate font-tactical text-xs uppercase text-dr-text">{event.title}</div>
+                <div className="truncate font-data text-dr-secondary">
                   {formatTime(new Date(event.start))} – {formatTime(new Date(event.end))}
                 </div>
               </button>
