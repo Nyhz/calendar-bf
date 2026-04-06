@@ -11,6 +11,7 @@ import { Sidebar } from './Sidebar'
 import { SummaryBanner } from './SummaryBanner'
 import { EventForm } from './EventForm'
 import { EventPopover } from './EventPopover'
+import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
@@ -133,20 +134,10 @@ function CalendarShellInner() {
   const [view, setView] = useState<ViewType>(initialView)
   const [currentDate, setCurrentDate] = useState<Date>(initialDate)
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
-  const [darkMode, setDarkMode] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createDate, setCreateDate] = useState<Date | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-
-  // Load dark mode preference
-  useEffect(() => {
-    const stored = localStorage.getItem('darkMode')
-    if (stored === 'true') {
-      setDarkMode(true)
-      document.documentElement.classList.add('dark')
-    }
-  }, [])
 
   // Load filter preferences
   useEffect(() => {
@@ -170,19 +161,6 @@ function CalendarShellInner() {
     params.set('date', formatDateParam(currentDate))
     router.replace(`?${params.toString()}`, { scroll: false })
   }, [view, currentDate, router])
-
-  const toggleDarkMode = useCallback(() => {
-    setDarkMode(prev => {
-      const next = !prev
-      localStorage.setItem('darkMode', String(next))
-      if (next) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-      return next
-    })
-  }, [])
 
   const { start, end } = useMemo(() => getVisibleRange(currentDate, view), [currentDate, view])
 
@@ -237,14 +215,14 @@ function CalendarShellInner() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-dr-bg">
       <SummaryBanner />
 
       {/* Header */}
-      <header className="flex items-center gap-2 border-b border-gray-200 px-4 py-2 dark:border-gray-700">
+      <header className="flex items-center gap-2 border-b border-dr-border bg-dr-surface px-4 py-2">
         <button
           onClick={goPrev}
-          className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-2 text-dr-muted transition-all hover:text-dr-green hover:shadow-glow-green"
           aria-label="Previous"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -253,7 +231,7 @@ function CalendarShellInner() {
         </button>
         <button
           onClick={goNext}
-          className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-2 text-dr-muted transition-all hover:text-dr-green hover:shadow-glow-green"
           aria-label="Next"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -261,61 +239,38 @@ function CalendarShellInner() {
           </svg>
         </button>
 
-        <h2 className="min-w-48 text-lg font-semibold capitalize">{headerLabel}</h2>
+        <h2 className="min-w-48 font-tactical text-lg uppercase tracking-widest text-dr-text">
+          {headerLabel}
+        </h2>
 
         <button
           onClick={goToday}
-          className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+          className="border border-dr-green px-3 py-1 font-tactical text-sm uppercase tracking-wider text-dr-green transition-all hover:bg-dr-green/10 hover:shadow-glow-green"
         >
           Today
         </button>
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center border border-dr-border bg-dr-bg">
           {views.map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`rounded-md px-3 py-1 text-sm ${
+              className={cn(
+                'px-3 py-1 font-tactical text-sm uppercase tracking-wider transition-all',
                 view === v
-                  ? 'bg-blue-500 text-white'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+                  ? 'bg-dr-green/15 text-dr-green shadow-glow-green'
+                  : 'text-dr-muted hover:bg-dr-hover hover:text-dr-text'
+              )}
             >
               {viewLabels[v]}
             </button>
           ))}
         </div>
-
-        <button
-          onClick={() => handleCreateEvent()}
-          className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600"
-          aria-label="Create event"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-
-        <button
-          onClick={toggleDarkMode}
-          className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-          aria-label="Toggle dark mode"
-        >
-          {darkMode ? (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
-        </button>
       </header>
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden w-70 shrink-0 overflow-y-auto border-r border-gray-200 p-4 dark:border-gray-700 lg:block">
+        <aside className="hidden w-70 shrink-0 overflow-y-auto border-r border-dr-border bg-dr-surface p-4 lg:block">
           <Sidebar
             currentDate={currentDate}
             onDateSelect={handleDateSelect}
@@ -359,6 +314,17 @@ function CalendarShellInner() {
           )}
         </main>
       </div>
+
+      {/* Create Event FAB */}
+      <button
+        onClick={() => handleCreateEvent()}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center border border-dr-green bg-dr-green/10 text-dr-green shadow-glow-green transition-all hover:bg-dr-green/20"
+        aria-label="Create event"
+      >
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
 
       {/* Event Create/Edit Form */}
       <EventForm
