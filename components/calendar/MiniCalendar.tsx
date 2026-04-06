@@ -1,0 +1,116 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+
+type MiniCalendarProps = {
+  currentDate: Date
+  onDateSelect: (date: Date) => void
+}
+
+const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
+  const [displayMonth, setDisplayMonth] = useState(() => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
+
+  const today = useMemo(() => new Date(), [])
+
+  const weeks = useMemo(() => {
+    const year = displayMonth.getFullYear()
+    const month = displayMonth.getMonth()
+    const firstOfMonth = new Date(year, month, 1)
+    const dow = firstOfMonth.getDay()
+    // Monday = 0 offset. Sunday (0) maps to 6, others subtract 1
+    const mondayOffset = dow === 0 ? -6 : 1 - dow
+    const gridStart = new Date(year, month, 1 + mondayOffset)
+
+    const rows: Date[][] = []
+    for (let w = 0; w < 6; w++) {
+      const week: Date[] = []
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(gridStart)
+        date.setDate(gridStart.getDate() + w * 7 + d)
+        week.push(date)
+      }
+      rows.push(week)
+    }
+    return rows
+  }, [displayMonth])
+
+  const headerLabel = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(displayMonth)
+
+  const goPrevMonth = () => setDisplayMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
+  const goNextMonth = () => setDisplayMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <button
+          onClick={goPrevMonth}
+          className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+          aria-label="Mes anterior"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <span className="text-sm font-medium capitalize">{headerLabel}</span>
+        <button
+          onClick={goNextMonth}
+          className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+          aria-label="Mes siguiente"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <table className="w-full text-center text-xs" role="grid" aria-label="Mini calendario">
+        <thead>
+          <tr>
+            {DAY_LABELS.map(label => (
+              <th key={label} className="py-1 font-medium text-gray-500 dark:text-gray-400" scope="col">
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {weeks.map((week, wi) => (
+            <tr key={wi}>
+              {week.map((date, di) => {
+                const isCurrentMonth = date.getMonth() === displayMonth.getMonth()
+                const isToday = isSameDay(date, today)
+                const isSelected = isSameDay(date, currentDate)
+
+                return (
+                  <td key={di} className="p-0">
+                    <button
+                      onClick={() => onDateSelect(date)}
+                      className={`h-7 w-7 rounded-full text-xs transition-colors ${
+                        isSelected
+                          ? 'bg-blue-500 font-semibold text-white'
+                          : isToday
+                            ? 'bg-blue-100 font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            : isCurrentMonth
+                              ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                              : 'text-gray-400 hover:bg-gray-100 dark:text-gray-600 dark:hover:bg-gray-800'
+                      }`}
+                      aria-label={date.toLocaleDateString('es-ES')}
+                    >
+                      {date.getDate()}
+                    </button>
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

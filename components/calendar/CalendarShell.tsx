@@ -7,6 +7,7 @@ import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
 import { DayView } from './DayView'
 import { AgendaView } from './AgendaView'
+import { Sidebar } from './Sidebar'
 import type { Event } from '@/lib/db/schema'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
@@ -201,6 +202,11 @@ function CalendarShellInner() {
     setSelectedEvent(event)
   }, [])
 
+  const handleDateSelect = useCallback((date: Date) => {
+    setCurrentDate(date)
+    setView('day')
+  }, [])
+
   const goToday = useCallback(() => setCurrentDate(new Date()), [])
   const goPrev = useCallback(() => setCurrentDate(d => navigateDate(d, view, -1)), [view])
   const goNext = useCallback(() => setCurrentDate(d => navigateDate(d, view, 1)), [view])
@@ -295,9 +301,13 @@ function CalendarShellInner() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar placeholder — separate mission */}
-        <aside className="hidden w-70 shrink-0 border-r border-gray-200 p-4 dark:border-gray-700 lg:block">
-          {/* Sidebar — deferred */}
+        <aside className="hidden w-70 shrink-0 overflow-y-auto border-r border-gray-200 p-4 dark:border-gray-700 lg:block">
+          <Sidebar
+            currentDate={currentDate}
+            onDateSelect={handleDateSelect}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
         </aside>
 
         {/* Active view */}
