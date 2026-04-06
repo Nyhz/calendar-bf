@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import type { Event } from '@/lib/db/schema'
+import { cn } from '@/components/ui/utils'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
@@ -60,17 +61,19 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
 
   if (grouped.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
-        No events in the next 30 days
+      <div className="flex h-full items-center justify-center bg-dr-bg p-4">
+        <span className="font-tactical text-sm uppercase tracking-widest text-dr-muted">
+          No events scheduled
+        </span>
       </div>
     )
   }
 
   return (
-    <div className="overflow-y-auto p-4">
+    <div className="h-full overflow-y-auto bg-dr-bg p-4">
       {grouped.map(({ date, events: dayEvents }) => (
         <div key={getMadridDateString(date)} className="mb-6">
-          <h3 className="mb-2 text-sm font-semibold capitalize text-gray-900 dark:text-gray-100">
+          <h3 className="mb-2 border-b border-dr-border pb-1 font-tactical text-sm uppercase tracking-widest text-dr-green">
             {formatDateHeader(date)}
           </h3>
           <div className="space-y-1">
@@ -78,22 +81,28 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
               <button
                 key={`${event.id}`}
                 onClick={() => onSelectEvent(event)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
+                className={cn(
+                  'flex w-full items-center gap-3 border border-dr-border bg-dr-surface px-3 py-2 text-left',
+                  'transition-colors hover:bg-dr-hover hover:border-dr-border-hover hover:shadow-[0_0_8px_rgba(0,255,65,0.1)]'
+                )}
               >
                 <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: event.color }}
+                  className="h-3 w-3 shrink-0"
+                  style={{
+                    backgroundColor: event.color,
+                    boxShadow: `0 0 6px ${event.color}60`,
+                  }}
                 />
-                <span className="w-28 shrink-0 text-sm text-gray-500 dark:text-gray-400">
+                <span className="w-28 shrink-0 font-data text-sm text-dr-secondary">
                   {event.allDay || event.type === 'holiday'
                     ? 'All day'
                     : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}
                 </span>
-                <span className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                <span className="truncate font-tactical text-sm text-dr-text">
                   {event.title}
                 </span>
                 {event.location && (
-                  <span className="ml-auto truncate text-xs text-gray-400 dark:text-gray-500">
+                  <span className="ml-auto truncate font-data text-xs text-dr-muted">
                     {event.location}
                   </span>
                 )}
