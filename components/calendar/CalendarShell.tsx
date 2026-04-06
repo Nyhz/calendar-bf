@@ -8,6 +8,7 @@ import { WeekView } from './WeekView'
 import { DayView } from './DayView'
 import { AgendaView } from './AgendaView'
 import { Sidebar } from './Sidebar'
+import { SummaryBanner } from './SummaryBanner'
 import { EventForm } from './EventForm'
 import { EventPopover } from './EventPopover'
 import type { Event } from '@/lib/db/schema'
@@ -237,8 +238,7 @@ function CalendarShellInner() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Summary banner placeholder */}
-      <div>{/* SummaryBanner — deferred */}</div>
+      <SummaryBanner />
 
       {/* Header */}
       <header className="flex items-center gap-2 border-b border-gray-200 px-4 py-2 dark:border-gray-700">
