@@ -1,31 +1,32 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Share_Tech_Mono, IBM_Plex_Mono, Courier_Prime } from "next/font/google";
 import "./globals.css";
 import { initTelegramBot } from "@/lib/telegram/init";
 
 initTelegramBot();
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const shareTechMono = Share_Tech_Mono({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-share-tech-mono",
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-ibm-plex-mono",
+});
+
+const courierPrime = Courier_Prime({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-courier-prime",
 });
 
 export const metadata: Metadata = {
   title: "Calendar",
   description: "Personal calendar application",
 };
-
-const themeScript = `
-(function() {
-  try {
-    var stored = localStorage.getItem('calendar-dark-mode');
-    var isDark = stored !== null
-      ? stored === 'true'
-      : window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (isDark) document.documentElement.classList.add('dark');
-  } catch(e) {}
-})();
-`;
 
 export default function RootLayout({
   children,
@@ -35,13 +36,9 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} h-full antialiased`}
-      suppressHydrationWarning
+      className={`dark ${shareTechMono.variable} ${ibmPlexMono.variable} ${courierPrime.variable} h-full antialiased`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
+      <body className="min-h-full flex flex-col font-tactical bg-dr-bg text-dr-text">
         {children}
       </body>
     </html>
