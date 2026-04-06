@@ -5,16 +5,46 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --surface: #f9fafb;
+  --surface-elevated: #ffffff;
+  --border: #e5e7eb;
+  --border-muted: #f3f4f6;
+  --text-muted: #6b7280;
+  --text-dimmed: #9ca3af;
+  --ring: #3b82f6;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --hover: #f3f4f6;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0f0f1a;
+  --foreground: #e5e7eb;
+  --surface: #1a1a2e;
+  --surface-elevated: #222240;
+  --border: #2d2d4a;
+  --border-muted: #1f1f36;
+  --text-muted: #9ca3af;
+  --text-dimmed: #6b7280;
+  --ring: #60a5fa;
+  --input-bg: #1a1a2e;
+  --input-border: #2d2d4a;
+  --hover: #222240;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-border-muted: var(--border-muted);
+  --color-text-muted: var(--text-muted);
+  --color-text-dimmed: var(--text-dimmed);
+  --color-ring: var(--ring);
+  --color-input-bg: var(--input-bg);
+  --color-input-border: var(--input-border);
+  --color-hover: var(--hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -22,5 +52,30 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dimmed);
+}
+
+/* Focus ring utility */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
