@@ -1,4 +1,5 @@
 import { Bot } from 'grammy'
+import { registerHandlers } from './handlers'
 
 const token = process.env.TELEGRAM_BOT_TOKEN
 const authorizedUserId = process.env.TELEGRAM_AUTHORIZED_USER_ID
@@ -19,6 +20,8 @@ export async function startBot(): Promise<void> {
     console.warn('[Telegram] Bot not initialized — skipping start')
     return
   }
+
+  registerHandlers(bot)
 
   try {
     await bot.start({
