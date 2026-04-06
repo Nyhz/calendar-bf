@@ -31,9 +31,9 @@ export type Summary = typeof summaries.$inferSelect
 export type NewSummary = typeof summaries.$inferInsert
 
 export const TYPE_COLORS: Record<string, string> = {
-  event: '#3B82F6',
-  meeting: '#22C55E',
-  birthday: '#A855F7',
-  reminder: '#EAB308',
-  holiday: '#EF4444',
+  event: '#00aaff',
+  meeting: '#00ff41',
+  birthday: '#00d4aa',
+  reminder: '#ffbf00',
+  holiday: '#ff3333',
 }
