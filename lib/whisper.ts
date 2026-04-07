@@ -12,16 +12,17 @@ export async function transcribeAudio(filePath: string): Promise<string> {
 
   try {
     if (backend === 'mlx-whisper') {
-      await execFileAsync('mlx_whisper', [
+      const binary = process.env.WHISPER_BINARY_PATH || 'mlx_whisper'
+      await execFileAsync(binary, [
         '--model', model,
-        '--language', 'en',
+        '--language', 'es',
         '--output-format', 'txt',
         filePath,
       ])
     } else if (backend === 'whisper.cpp') {
       await execFileAsync('whisper-cpp', [
         '--model', model,
-        '--language', 'en',
+        '--language', 'es',
         '--output-txt',
         filePath,
       ])
