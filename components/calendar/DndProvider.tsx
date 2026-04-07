@@ -64,10 +64,10 @@ export default function DndProvider({ onEventMove, onEventResize: _onEventResize
       <DragOverlay dropAnimation={null}>
         {activeDrag && (
           <div
-            className="truncate border-l-3 px-2 py-1 font-tactical text-xs uppercase text-dr-text shadow-lg"
+            className="truncate border-l-[3px] px-1.5 font-mono text-xs leading-5 text-dr-text shadow-lg"
             style={{
               borderLeftColor: activeDrag.color,
-              backgroundColor: `${activeDrag.color}33`,
+              backgroundColor: `${activeDrag.color}1a`,
               maxWidth: 200,
             }}
           >
