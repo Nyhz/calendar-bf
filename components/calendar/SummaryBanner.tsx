@@ -70,7 +70,20 @@ export function SummaryBanner() {
     }
   }, [today, mutate])
 
-  if (summary === undefined && isValidating) return null
+  if (!summary && !isValidating) return null
+
+  if (summary === undefined && isValidating) {
+    return (
+      <div className="bg-dr-surface border border-dr-border border-t-dr-teal shadow-[0_-2px_12px_rgba(0,212,170,0.15)] px-4 py-3">
+        <div className="flex items-center gap-2 animate-pulse">
+          <div className="h-5 w-5 shrink-0 rounded bg-dr-teal/20" />
+          <div className="h-4 w-48 rounded bg-dr-teal/20" />
+          <div className="h-3 w-20 rounded bg-dr-muted/20" />
+        </div>
+      </div>
+    )
+  }
+
   if (!summary) return null
 
   return (
