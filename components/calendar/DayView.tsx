@@ -390,6 +390,8 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent, onE
                   end={event.end}
                   allDay={true}
                   sourceView="day"
+                  title={event.title}
+                  color={event.color}
                 >
                   {eventEl}
                 </DraggableEvent>
@@ -519,6 +521,8 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent, onE
                   end={event.end}
                   allDay={false}
                   sourceView="day"
+                  title={event.title}
+                  color={event.color}
                   className="relative h-full"
                 >
                   {eventContent}

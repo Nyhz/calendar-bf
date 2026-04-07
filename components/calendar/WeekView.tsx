@@ -481,6 +481,8 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent, on
                         end={event.end}
                         allDay={true}
                         sourceView="week"
+                        title={event.title}
+                        color={event.color}
                       >
                         {eventButton}
                       </DraggableEvent>
@@ -624,6 +626,8 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent, on
                       end={event.end}
                       allDay={false}
                       sourceView="week"
+                      title={event.title}
+                      color={event.color}
                       className="absolute z-10"
                       style={{
                         top,
