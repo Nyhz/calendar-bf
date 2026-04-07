@@ -40,10 +40,12 @@ export function SummaryBanner() {
     summaryFetcher,
   )
 
+  const [mounted, setMounted] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const stored = localStorage.getItem(COLLAPSE_KEY)
     if (stored === 'true') setCollapsed(true)
   }, [])
@@ -70,6 +72,10 @@ export function SummaryBanner() {
     }
   }, [today, mutate])
 
+  // Render nothing until mounted — prevents server/client hydration mismatch
+  // caused by SWR setting isValidating:true on first client render.
+  if (!mounted) return null
+
   if (!summary && !isValidating) return null
 
   if (summary === undefined && isValidating) {
@@ -79,6 +85,13 @@ export function SummaryBanner() {
           <div className="h-5 w-5 shrink-0 rounded bg-dr-teal/20" />
           <div className="h-4 w-48 rounded bg-dr-teal/20" />
           <div className="h-3 w-20 rounded bg-dr-muted/20" />
+          <div className="ml-auto h-4 w-4 rounded bg-dr-muted/20" />
+          <div className="h-4 w-4 rounded bg-dr-muted/20" />
+        </div>
+        <div className="mt-2 space-y-2 animate-pulse">
+          <div className="h-3 w-full rounded bg-dr-muted/20" />
+          <div className="h-3 w-5/6 rounded bg-dr-muted/20" />
+          <div className="h-3 w-4/6 rounded bg-dr-muted/20" />
         </div>
       </div>
     )
