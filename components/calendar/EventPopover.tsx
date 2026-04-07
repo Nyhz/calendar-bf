@@ -41,15 +41,20 @@ function formatDateRange(start: string, end: string, allDay: number): string {
     ...(allDay ? {} : { hour: '2-digit', minute: '2-digit' }),
   })
 
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-
   if (allDay) {
+    const startDateOnly = start.substring(0, 10)
+    const endDateOnly = end.substring(0, 10)
+    // Use T12:00:00Z to avoid timezone day-boundary shifts when formatting
+    const startDate = new Date(startDateOnly + 'T12:00:00Z')
+    const endDate = new Date(endDateOnly + 'T12:00:00Z')
     const startStr = fmt.format(startDate)
     const endStr = fmt.format(endDate)
-    if (startStr === endStr) return startStr
+    if (startDateOnly === endDateOnly) return startStr
     return `${startStr} – ${endStr}`
   }
+
+  const startDate = new Date(start)
+  const endDate = new Date(end)
 
   const dateFmt = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
@@ -159,7 +164,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
 
       {/* Date/Time */}
       <p className="font-data text-sm text-dr-secondary mb-3">
-        {formatDateRange(event.start, event.end, event.allDay)}
+        {formatDateRange(event.start, event.end, (event.allDay || event.type === 'holiday') ? 1 : 0)}
       </p>
 
       {/* Location */}
