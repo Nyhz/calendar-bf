@@ -1,12 +1,14 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
+  type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { computeNewTimes, type CalendarDragData, type CalendarDropData } from '@/lib/dnd'
@@ -18,6 +20,8 @@ type DndProviderProps = {
 }
 
 export default function DndProvider({ onEventMove, onEventResize: _onEventResize, children }: DndProviderProps) {
+  const [activeDrag, setActiveDrag] = useState<CalendarDragData | null>(null)
+
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 5 },
   })
@@ -26,7 +30,14 @@ export default function DndProvider({ onEventMove, onEventResize: _onEventResize
   })
   const sensors = useSensors(pointerSensor, touchSensor)
 
+  function handleDragStart(event: DragStartEvent) {
+    const dragData = event.active.data.current as CalendarDragData | undefined
+    setActiveDrag(dragData ?? null)
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setActiveDrag(null)
+
     const { active, over } = event
     if (!over) return
 
@@ -38,9 +49,32 @@ export default function DndProvider({ onEventMove, onEventResize: _onEventResize
     onEventMove(dragData.eventId, start, end)
   }
 
+  function handleDragCancel() {
+    setActiveDrag(null)
+  }
+
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
       {children}
+      <DragOverlay dropAnimation={null}>
+        {activeDrag && (
+          <div
+            className="truncate border-l-3 px-2 py-1 font-tactical text-xs uppercase text-dr-text shadow-lg"
+            style={{
+              borderLeftColor: activeDrag.color,
+              backgroundColor: `${activeDrag.color}33`,
+              maxWidth: 200,
+            }}
+          >
+            {activeDrag.title}
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   )
 }

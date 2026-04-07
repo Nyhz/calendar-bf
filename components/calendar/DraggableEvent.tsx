@@ -10,6 +10,8 @@ type DraggableEventProps = {
   end: string
   allDay: boolean
   sourceView: 'month' | 'week' | 'day'
+  title: string
+  color: string
   children: ReactNode
   className?: string
   style?: React.CSSProperties
@@ -21,6 +23,8 @@ export default function DraggableEvent({
   end,
   allDay,
   sourceView,
+  title,
+  color,
   children,
   className,
   style,
@@ -31,6 +35,8 @@ export default function DraggableEvent({
     originalEnd: end,
     allDay,
     sourceView,
+    title,
+    color,
   }
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

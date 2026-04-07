@@ -6,6 +6,8 @@ export type CalendarDragData = {
   originalEnd: string
   allDay: boolean
   sourceView: 'month' | 'week' | 'day'
+  title: string
+  color: string
 }
 
 export type CalendarDropData = {

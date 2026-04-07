@@ -74,7 +74,7 @@ function DroppableDayCell({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-h-24 cursor-pointer flex-col border-b border-r border-dr-border p-1 transition-colors',
+        'flex min-h-28 cursor-pointer flex-col border-b border-r border-dr-border p-1 transition-colors',
         isCurrentMonth ? 'bg-transparent' : 'bg-dr-bg/60',
         isOver
           ? 'bg-blue-100/40 dark:bg-blue-900/30'
@@ -142,6 +142,8 @@ function DroppableDayCell({
               end={event.end}
               allDay={!!event.allDay}
               sourceView="month"
+              title={event.title}
+              color={event.color}
             >
               {eventChip}
             </DraggableEvent>
