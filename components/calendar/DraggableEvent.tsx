@@ -12,6 +12,7 @@ type DraggableEventProps = {
   sourceView: 'month' | 'week' | 'day'
   children: ReactNode
   className?: string
+  style?: React.CSSProperties
 }
 
 export default function DraggableEvent({
@@ -22,6 +23,7 @@ export default function DraggableEvent({
   sourceView,
   children,
   className,
+  style,
 }: DraggableEventProps) {
   const dragData: CalendarDragData = {
     eventId,
@@ -42,6 +44,7 @@ export default function DraggableEvent({
       {...listeners}
       {...attributes}
       className={`${className ?? ''} ${isDragging ? 'opacity-50' : ''}`}
+      style={style}
     >
       {children}
     </div>

@@ -363,6 +363,7 @@ function CalendarShellInner() {
                   events={events}
                   onCreateEvent={handleCreateEvent}
                   onSelectEvent={handleSelectEvent}
+                  onEventResize={handleEventResize}
                 />
               )}
               {view === 'day' && (
