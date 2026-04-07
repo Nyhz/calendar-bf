@@ -1,8 +1,11 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
+import DraggableEvent from './DraggableEvent'
+import type { CalendarDropData } from '@/lib/dnd'
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
@@ -30,6 +33,133 @@ function getAllDayDateString(isoString: string): string {
 
 function isToday(date: Date): boolean {
   return getMadridDateString(date) === getMadridDateString(new Date())
+}
+
+/** Extract the base numeric id from a potentially composite recurring id like "5_2025-04-07" */
+function getBaseEventId(id: number | string): number {
+  const str = String(id)
+  const underscoreIdx = str.indexOf('_')
+  return underscoreIdx >= 0 ? Number(str.substring(0, underscoreIdx)) : Number(str)
+}
+
+type DroppableDayCellProps = {
+  dateKey: string
+  day: Date
+  dayEvents: Event[]
+  isCurrentMonth: boolean
+  isToday: boolean
+  onCreateEvent: (date: Date) => void
+  onSelectEvent: (event: Event) => void
+}
+
+function DroppableDayCell({
+  dateKey,
+  day,
+  dayEvents,
+  isCurrentMonth,
+  isToday: today,
+  onCreateEvent,
+  onSelectEvent,
+}: DroppableDayCellProps) {
+  const dropData: CalendarDropData = { date: dateKey, time: null, view: 'month' }
+  const { setNodeRef, isOver } = useDroppable({
+    id: `month-day-${dateKey}`,
+    data: dropData,
+  })
+
+  const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS)
+  const overflowCount = dayEvents.length - MAX_VISIBLE_EVENTS
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'flex min-h-24 cursor-pointer flex-col border-b border-r border-dr-border p-1 transition-colors',
+        isCurrentMonth ? 'bg-transparent' : 'bg-dr-bg/60',
+        isOver
+          ? 'bg-blue-100/40 dark:bg-blue-900/30'
+          : 'hover:bg-dr-hover'
+      )}
+      onClick={() => {
+        onCreateEvent(day)
+      }}
+    >
+      <div className="mb-1 flex justify-end">
+        <span
+          className={cn(
+            'inline-flex h-6 w-6 items-center justify-center font-data text-xs',
+            today
+              ? 'bg-dr-green font-bold text-dr-bg'
+              : isCurrentMonth
+                ? 'text-dr-secondary'
+                : 'text-dr-dim'
+          )}
+        >
+          {day.getDate()}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
+        {visibleEvents.map(event => {
+          const isFullWidth = event.allDay || event.type === 'holiday'
+          const isHoliday = event.type === 'holiday'
+          const eventChip = (
+            <button
+              key={`${event.id}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectEvent(event)
+              }}
+              className={cn(
+                'group truncate border-l-[3px] px-1.5 text-left font-mono text-xs leading-5 text-dr-text transition-shadow',
+                isFullWidth ? 'w-full' : ''
+              )}
+              style={{
+                borderLeftColor: event.color,
+                backgroundColor: `${event.color}1a`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = `0 0 12px ${event.color}40`
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              title={event.title}
+            >
+              {event.title}
+            </button>
+          )
+
+          if (isHoliday) {
+            return <div key={`${event.id}`}>{eventChip}</div>
+          }
+
+          return (
+            <DraggableEvent
+              key={`${event.id}`}
+              eventId={getBaseEventId(event.id)}
+              start={event.start}
+              end={event.end}
+              allDay={!!event.allDay}
+              sourceView="month"
+            >
+              {eventChip}
+            </DraggableEvent>
+          )
+        })}
+        {overflowCount > 0 && (
+          <button
+            className="text-left font-tactical text-xs uppercase text-dr-green hover:text-dr-green/80"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
+            +{overflowCount} more
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }: MonthViewProps) {
@@ -99,78 +229,18 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
           const dayEvents = eventsByDate.get(dateKey) ?? []
           const isCurrentMonth = day.getMonth() === currentMonth
           const today = isToday(day)
-          const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS)
-          const overflowCount = dayEvents.length - MAX_VISIBLE_EVENTS
 
           return (
-            <div
+            <DroppableDayCell
               key={i}
-              className={cn(
-                'flex min-h-24 cursor-pointer flex-col border-b border-r border-dr-border p-1 transition-colors',
-                isCurrentMonth ? 'bg-transparent' : 'bg-dr-bg/60',
-                'hover:bg-dr-hover'
-              )}
-              onClick={() => {
-                onCreateEvent(day)
-              }}
-            >
-              <div className="mb-1 flex justify-end">
-                <span
-                  className={cn(
-                    'inline-flex h-6 w-6 items-center justify-center font-data text-xs',
-                    today
-                      ? 'bg-dr-green font-bold text-dr-bg'
-                      : isCurrentMonth
-                        ? 'text-dr-secondary'
-                        : 'text-dr-dim'
-                  )}
-                >
-                  {day.getDate()}
-                </span>
-              </div>
-
-              <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
-                {visibleEvents.map(event => {
-                  const isFullWidth = event.allDay || event.type === 'holiday'
-                  return (
-                    <button
-                      key={`${event.id}`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onSelectEvent(event)
-                      }}
-                      className={cn(
-                        'group truncate border-l-[3px] px-1.5 text-left font-mono text-xs leading-5 text-dr-text transition-shadow',
-                        isFullWidth ? 'w-full' : ''
-                      )}
-                      style={{
-                        borderLeftColor: event.color,
-                        backgroundColor: `${event.color}1a`,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = `0 0 12px ${event.color}40`
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = 'none'
-                      }}
-                      title={event.title}
-                    >
-                      {event.title}
-                    </button>
-                  )
-                })}
-                {overflowCount > 0 && (
-                  <button
-                    className="text-left font-tactical text-xs uppercase text-dr-green hover:text-dr-green/80"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                    }}
-                  >
-                    +{overflowCount} more
-                  </button>
-                )}
-              </div>
-            </div>
+              dateKey={dateKey}
+              day={day}
+              dayEvents={dayEvents}
+              isCurrentMonth={isCurrentMonth}
+              isToday={today}
+              onCreateEvent={onCreateEvent}
+              onSelectEvent={onSelectEvent}
+            />
           )
         })}
       </div>
