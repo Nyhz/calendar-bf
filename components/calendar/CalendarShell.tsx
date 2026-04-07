@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import useSWR from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
+import DndProvider from './DndProvider'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
 import { DayView } from './DayView'
@@ -174,6 +175,65 @@ function CalendarShellInner() {
   }, [start, end, filters])
 
   const { data: events = [] } = useSWR<Event[]>(swrKey, fetcher)
+  const { mutate } = useSWRConfig()
+
+  const revalidateEvents = useCallback(() => {
+    mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/events'))
+  }, [mutate])
+
+  const handleEventMove = useCallback(async (eventId: number, newStart: string, newEnd: string) => {
+    // Optimistic update
+    mutate(
+      swrKey,
+      (current: Event[] | undefined) =>
+        current?.map(e =>
+          (e.id === eventId ? { ...e, start: newStart, end: newEnd } : e)
+        ),
+      false,
+    )
+
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: newStart, end: newEnd }),
+      })
+      if (!res.ok) {
+        console.error('Failed to move event:', await res.text())
+      }
+    } catch (err) {
+      console.error('Failed to move event:', err)
+    }
+
+    revalidateEvents()
+  }, [swrKey, mutate, revalidateEvents])
+
+  const handleEventResize = useCallback(async (eventId: number, newEnd: string) => {
+    // Optimistic update
+    mutate(
+      swrKey,
+      (current: Event[] | undefined) =>
+        current?.map(e =>
+          (e.id === eventId ? { ...e, end: newEnd } : e)
+        ),
+      false,
+    )
+
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ end: newEnd }),
+      })
+      if (!res.ok) {
+        console.error('Failed to resize event:', await res.text())
+      }
+    } catch (err) {
+      console.error('Failed to resize event:', err)
+    }
+
+    revalidateEvents()
+  }, [swrKey, mutate, revalidateEvents])
 
   const handleCreateEvent = useCallback((date?: Date) => {
     setCreateDate(date ?? null)
@@ -281,36 +341,39 @@ function CalendarShellInner() {
 
         {/* Active view */}
         <main className="flex-1 overflow-auto">
-          {view === 'month' && (
-            <MonthView
-              currentDate={currentDate}
-              events={events}
-              onCreateEvent={handleCreateEvent}
-              onSelectEvent={handleSelectEvent}
-            />
-          )}
-          {view === 'week' && (
-            <WeekView
-              currentDate={currentDate}
-              events={events}
-              onCreateEvent={handleCreateEvent}
-              onSelectEvent={handleSelectEvent}
-            />
-          )}
-          {view === 'day' && (
-            <DayView
-              currentDate={currentDate}
-              events={events}
-              onCreateEvent={handleCreateEvent}
-              onSelectEvent={handleSelectEvent}
-            />
-          )}
-          {view === 'agenda' && (
+          {view === 'agenda' ? (
             <AgendaView
               currentDate={currentDate}
               events={events}
               onSelectEvent={handleSelectEvent}
             />
+          ) : (
+            <DndProvider onEventMove={handleEventMove} onEventResize={handleEventResize}>
+              {view === 'month' && (
+                <MonthView
+                  currentDate={currentDate}
+                  events={events}
+                  onCreateEvent={handleCreateEvent}
+                  onSelectEvent={handleSelectEvent}
+                />
+              )}
+              {view === 'week' && (
+                <WeekView
+                  currentDate={currentDate}
+                  events={events}
+                  onCreateEvent={handleCreateEvent}
+                  onSelectEvent={handleSelectEvent}
+                />
+              )}
+              {view === 'day' && (
+                <DayView
+                  currentDate={currentDate}
+                  events={events}
+                  onCreateEvent={handleCreateEvent}
+                  onSelectEvent={handleSelectEvent}
+                />
+              )}
+            </DndProvider>
           )}
         </main>
       </div>
