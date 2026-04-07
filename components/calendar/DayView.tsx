@@ -20,6 +20,10 @@ function getMadridDateString(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(date)
 }
 
+function getAllDayDateString(isoString: string): string {
+  return isoString.substring(0, 10)
+}
+
 function getMadridHours(date: Date): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
@@ -108,8 +112,8 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent }: D
 
     for (const event of events) {
       if (event.allDay || event.type === 'holiday') {
-        const start = getMadridDateString(new Date(event.start))
-        const end = getMadridDateString(new Date(event.end))
+        const start = getAllDayDateString(event.start)
+        const end = getAllDayDateString(event.end)
         if (dateStr >= start && dateStr <= end) {
           allDay.push(event)
         }

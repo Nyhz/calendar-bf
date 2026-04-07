@@ -24,6 +24,10 @@ function getEventDateString(isoString: string): string {
   return getMadridDateString(new Date(isoString))
 }
 
+function getAllDayDateString(isoString: string): string {
+  return isoString.substring(0, 10)
+}
+
 function isToday(date: Date): boolean {
   return getMadridDateString(date) === getMadridDateString(new Date())
 }
@@ -51,18 +55,20 @@ export function MonthView({ currentDate, events, onCreateEvent, onSelectEvent }:
   const eventsByDate = useMemo(() => {
     const map = new Map<string, Event[]>()
     for (const event of events) {
-      const startDate = getEventDateString(event.start)
-      const endDate = getEventDateString(event.end)
+      const isAllDay = event.allDay || event.type === 'holiday'
+      const startDate = isAllDay ? getAllDayDateString(event.start) : getEventDateString(event.start)
+      const endDate = isAllDay ? getAllDayDateString(event.end) : getEventDateString(event.end)
 
       // For multi-day / all-day events, add to each date in range
       if (event.allDay || startDate !== endDate) {
-        const current = new Date(event.start)
-        const endDt = new Date(event.end)
-        while (current <= endDt) {
-          const key = getMadridDateString(current)
+        const current = new Date(startDate + 'T12:00:00Z')
+        const endKey = endDate
+        let key = startDate
+        while (key <= endKey) {
           if (!map.has(key)) map.set(key, [])
           map.get(key)!.push(event)
           current.setDate(current.getDate() + 1)
+          key = current.toISOString().substring(0, 10)
         }
       } else {
         if (!map.has(startDate)) map.set(startDate, [])

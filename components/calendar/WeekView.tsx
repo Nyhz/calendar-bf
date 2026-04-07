@@ -21,6 +21,10 @@ function getMadridDateString(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(date)
 }
 
+function getAllDayDateString(isoString: string): string {
+  return isoString.substring(0, 10)
+}
+
 function getMadridHours(date: Date): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
@@ -189,8 +193,8 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
             {weekDays.map((day, i) => {
               const dateStr = getMadridDateString(day)
               const dayAllDay = allDayEvents.filter(e => {
-                const start = getMadridDateString(new Date(e.start))
-                const end = getMadridDateString(new Date(e.end))
+                const start = getAllDayDateString(e.start)
+                const end = getAllDayDateString(e.end)
                 return dateStr >= start && dateStr <= end
               })
               return (

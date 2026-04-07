@@ -16,6 +16,10 @@ function getMadridDateString(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(date)
 }
 
+function getAllDayDateString(isoString: string): string {
+  return isoString.substring(0, 10)
+}
+
 function formatTime(date: Date): string {
   return new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
@@ -45,9 +49,9 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
       const key = getMadridDateString(d)
 
       const dayEvents = events.filter(event => {
-        const startDate = getMadridDateString(new Date(event.start))
-        const endDate = getMadridDateString(new Date(event.end))
-        // Event spans this day
+        const isAllDay = event.allDay || event.type === 'holiday'
+        const startDate = isAllDay ? getAllDayDateString(event.start) : getMadridDateString(new Date(event.start))
+        const endDate = isAllDay ? getAllDayDateString(event.end) : getMadridDateString(new Date(event.end))
         return key >= startDate && key <= endDate
       })
 
