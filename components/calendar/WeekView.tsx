@@ -1,6 +1,10 @@
 'use client'
 
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useRef, useCallback } from 'react'
+import { useDroppable, useDndMonitor } from '@dnd-kit/core'
+import DraggableEvent from './DraggableEvent'
+import { computeResizedEnd } from '@/lib/dnd'
+import type { CalendarDropData } from '@/lib/dnd'
 import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
 
@@ -8,13 +12,15 @@ const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 const HOUR_HEIGHT = 48 // px per hour
 const HALF_HOUR_HEIGHT = HOUR_HEIGHT / 2
 const TOTAL_HOURS = 24
-const SLOT_MINUTES = 30
+const SNAP_MINUTES = 15
+const PX_PER_MINUTE = HOUR_HEIGHT / 60
 
 type WeekViewProps = {
   currentDate: Date
   events: Event[]
   onCreateEvent: (date: Date) => void
   onSelectEvent: (event: Event) => void
+  onEventResize?: (eventId: number, newEnd: string) => Promise<void>
 }
 
 function getMadridDateString(date: Date): string {
@@ -108,8 +114,253 @@ function layoutOverlapping(dayEvents: Event[]): LayoutColumn[] {
   })
 }
 
-export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: WeekViewProps) {
+/** Extract base numeric id for recurring events (e.g. "42_2025-04-07" -> 42) */
+function getBaseEventId(id: number | string): number {
+  const str = String(id)
+  const underscoreIdx = str.indexOf('_')
+  return underscoreIdx > -1 ? parseInt(str.substring(0, underscoreIdx)) : Number(id)
+}
+
+// --- Droppable slot component (hooks must be called inside a component) ---
+
+function DroppableTimeSlot({
+  dateStr,
+  hour,
+  half,
+  isToday,
+  day,
+  onCreateEvent,
+}: {
+  dateStr: string
+  hour: number
+  half: 0 | 1
+  isToday: boolean
+  day: Date
+  onCreateEvent: (date: Date) => void
+}) {
+  const minutes = half === 0 ? '00' : '30'
+  const timeStr = `${hour.toString().padStart(2, '0')}:${minutes}`
+  const droppableId = `week-slot-${dateStr}-${timeStr}`
+
+  const dropData: CalendarDropData = {
+    date: dateStr,
+    time: timeStr,
+    view: 'week',
+  }
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: droppableId,
+    data: dropData,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'cursor-pointer border-b border-dr-border/50 hover:bg-dr-hover',
+        half === 0 && 'border-t border-t-dr-border',
+        isOver && 'bg-dr-green/10',
+        isToday && !isOver && 'bg-dr-green/[0.03]'
+      )}
+      style={{ height: HALF_HOUR_HEIGHT }}
+      onClick={() => {
+        const d = new Date(day)
+        d.setHours(hour, half * 30, 0, 0)
+        onCreateEvent(d)
+      }}
+    />
+  )
+}
+
+// --- Droppable all-day cell ---
+
+function DroppableAllDayCell({
+  dateStr,
+  dayIndex,
+  children,
+}: {
+  dateStr: string
+  dayIndex: number
+  children: React.ReactNode
+}) {
+  const dropData: CalendarDropData = {
+    date: dateStr,
+    time: null,
+    view: 'week',
+  }
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `week-allday-${dateStr}`,
+    data: dropData,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'flex flex-1 flex-col gap-0.5 border-r border-dr-border p-0.5',
+        dayIndex === 6 && 'border-r-0',
+        isOver && 'bg-dr-green/10'
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+// --- Resize handle ---
+
+function ResizeHandle({
+  event,
+  onEventResize,
+}: {
+  event: Event
+  onEventResize: (eventId: number, newEnd: string) => Promise<void>
+}) {
+  const handleRef = useRef<HTMLDivElement>(null)
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+
+      const startY = e.clientY
+      const eventId = getBaseEventId(event.id)
+
+      // Find the event block element (parent of the resize handle)
+      const eventBlock = handleRef.current?.parentElement
+      if (!eventBlock) return
+
+      const originalHeight = eventBlock.offsetHeight
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const deltaY = moveEvent.clientY - startY
+        const deltaMinutes = deltaY / PX_PER_MINUTE
+        // Snap to 15-minute increments
+        const snappedMinutes = Math.round(deltaMinutes / SNAP_MINUTES) * SNAP_MINUTES
+        const snappedDeltaPx = snappedMinutes * PX_PER_MINUTE
+
+        // Enforce minimum height (15 min)
+        const minHeight = SNAP_MINUTES * PX_PER_MINUTE
+        const newHeight = Math.max(originalHeight + snappedDeltaPx, minHeight)
+        eventBlock.style.height = `${newHeight}px`
+      }
+
+      const handlePointerUp = (upEvent: PointerEvent) => {
+        document.removeEventListener('pointermove', handlePointerMove)
+        document.removeEventListener('pointerup', handlePointerUp)
+
+        const deltaY = upEvent.clientY - startY
+        const deltaMinutes = deltaY / PX_PER_MINUTE
+        const snappedMinutes = Math.round(deltaMinutes / SNAP_MINUTES) * SNAP_MINUTES
+
+        if (snappedMinutes !== 0) {
+          const newEnd = computeResizedEnd(event.start, event.end, snappedMinutes)
+          onEventResize(eventId, newEnd)
+        } else {
+          // Reset height
+          eventBlock.style.height = ''
+        }
+      }
+
+      document.addEventListener('pointermove', handlePointerMove)
+      document.addEventListener('pointerup', handlePointerUp)
+    },
+    [event, onEventResize]
+  )
+
+  return (
+    <div
+      ref={handleRef}
+      onPointerDown={handlePointerDown}
+      className="absolute bottom-0 left-0 right-0 z-20 h-1.5 cursor-ns-resize bg-transparent hover:bg-dr-green/30"
+    />
+  )
+}
+
+// --- Auto-scroll hook ---
+
+function useAutoScrollOnDrag(containerRef: React.RefObject<HTMLDivElement | null>) {
+  const rafRef = useRef<number | null>(null)
+  const pointerYRef = useRef<number>(0)
+  const isDraggingRef = useRef(false)
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      pointerYRef.current = e.clientY
+    }
+
+    const tick = () => {
+      if (!isDraggingRef.current || !containerRef.current) {
+        rafRef.current = null
+        return
+      }
+
+      const rect = containerRef.current.getBoundingClientRect()
+      const y = pointerYRef.current
+      const edgeZone = 50
+
+      if (y < rect.top + edgeZone && y > rect.top) {
+        const intensity = 1 - (y - rect.top) / edgeZone
+        containerRef.current.scrollBy(0, -10 * intensity)
+      } else if (y > rect.bottom - edgeZone && y < rect.bottom) {
+        const intensity = 1 - (rect.bottom - y) / edgeZone
+        containerRef.current.scrollBy(0, 10 * intensity)
+      }
+
+      rafRef.current = requestAnimationFrame(tick)
+    }
+
+    document.addEventListener('pointermove', handlePointerMove)
+
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [containerRef])
+
+  useDndMonitor({
+    onDragStart() {
+      isDraggingRef.current = true
+      if (rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(function tick() {
+          if (!isDraggingRef.current || !containerRef.current) {
+            rafRef.current = null
+            return
+          }
+
+          const rect = containerRef.current.getBoundingClientRect()
+          const y = pointerYRef.current
+          const edgeZone = 50
+
+          if (y < rect.top + edgeZone && y > rect.top) {
+            const intensity = 1 - (y - rect.top) / edgeZone
+            containerRef.current.scrollBy(0, -10 * intensity)
+          } else if (y > rect.bottom - edgeZone && y < rect.bottom) {
+            const intensity = 1 - (rect.bottom - y) / edgeZone
+            containerRef.current.scrollBy(0, 10 * intensity)
+          }
+
+          rafRef.current = requestAnimationFrame(tick)
+        })
+      }
+    },
+    onDragEnd() {
+      isDraggingRef.current = false
+    },
+    onDragCancel() {
+      isDraggingRef.current = false
+    },
+  })
+}
+
+// --- Main component ---
+
+export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent, onEventResize }: WeekViewProps) {
   const [nowMinutes, setNowMinutes] = useState(() => getMadridHours(new Date()) * 60)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  useAutoScrollOnDrag(scrollContainerRef)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -147,6 +398,9 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
   const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => i)
   const dayNameFmt = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: TIMEZONE })
   const dayNumFmt = new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: TIMEZONE })
+
+  const noopResize = useCallback(async () => {}, [])
+  const resizeHandler = onEventResize ?? noopResize
 
   return (
     <div className="flex h-full flex-col">
@@ -198,25 +452,41 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
                 return dateStr >= start && dateStr <= end
               })
               return (
-                <div key={i} className={cn(
-                  'flex flex-1 flex-col gap-0.5 border-r border-dr-border p-0.5',
-                  i === 6 && 'border-r-0'
-                )}>
-                  {dayAllDay.map(event => (
-                    <button
-                      key={`${event.id}`}
-                      onClick={() => onSelectEvent(event)}
-                      className="truncate border-l-3 px-1 text-left font-tactical text-xs uppercase leading-5 text-dr-text"
-                      style={{
-                        borderLeftColor: event.color,
-                        backgroundColor: `${event.color}1a`,
-                      }}
-                      title={event.title}
-                    >
-                      {event.title}
-                    </button>
-                  ))}
-                </div>
+                <DroppableAllDayCell key={i} dateStr={dateStr} dayIndex={i}>
+                  {dayAllDay.map(event => {
+                    const isHoliday = event.type === 'holiday'
+                    const eventButton = (
+                      <button
+                        onClick={() => onSelectEvent(event)}
+                        className="truncate border-l-3 px-1 text-left font-tactical text-xs uppercase leading-5 text-dr-text"
+                        style={{
+                          borderLeftColor: event.color,
+                          backgroundColor: `${event.color}1a`,
+                        }}
+                        title={event.title}
+                      >
+                        {event.title}
+                      </button>
+                    )
+
+                    if (isHoliday) {
+                      return <div key={`${event.id}`}>{eventButton}</div>
+                    }
+
+                    return (
+                      <DraggableEvent
+                        key={`${event.id}`}
+                        eventId={getBaseEventId(event.id)}
+                        start={event.start}
+                        end={event.end}
+                        allDay={true}
+                        sourceView="week"
+                      >
+                        {eventButton}
+                      </DraggableEvent>
+                    )
+                  })}
+                </DroppableAllDayCell>
               )
             })}
           </div>
@@ -224,7 +494,7 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
       )}
 
       {/* Time grid */}
-      <div className="flex flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex flex-1 overflow-y-auto">
         {/* Time labels */}
         <div className="relative w-16 shrink-0">
           {hours.map(h => (
@@ -249,30 +519,35 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
             return (
               <div
                 key={dayIndex}
-                className={cn(
-                  'relative flex-1 border-r border-dr-border',
-                  isToday && 'bg-dr-green/[0.03]'
-                )}
+                className="relative flex-1 border-r border-dr-border"
                 style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}
               >
-                {/* Hour grid lines */}
+                {/* Half-hour droppable slots */}
                 {hours.map(h => (
-                  <div
-                    key={h}
-                    className="cursor-pointer border-b border-dr-border hover:bg-dr-hover"
-                    style={{ height: HOUR_HEIGHT }}
-                    onClick={() => {
-                      const d = new Date(day)
-                      d.setHours(h, 0, 0, 0)
-                      onCreateEvent(d)
-                    }}
-                  />
+                  <div key={h}>
+                    <DroppableTimeSlot
+                      dateStr={dateStr}
+                      hour={h}
+                      half={0}
+                      isToday={isToday}
+                      day={day}
+                      onCreateEvent={onCreateEvent}
+                    />
+                    <DroppableTimeSlot
+                      dateStr={dateStr}
+                      hour={h}
+                      half={1}
+                      isToday={isToday}
+                      day={day}
+                      onCreateEvent={onCreateEvent}
+                    />
+                  </div>
                 ))}
 
                 {/* Current time indicator */}
                 {isToday && (
                   <div
-                    className="absolute left-0 right-0 z-20 border-t-2 border-dr-red"
+                    className="pointer-events-none absolute left-0 right-0 z-20 border-t-2 border-dr-red"
                     style={{
                       top: (nowMinutes / 60) * HOUR_HEIGHT,
                       boxShadow: '0 0 8px rgba(255, 51, 51, 0.5)',
@@ -288,23 +563,28 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
                   const endHours = getMadridHours(new Date(event.end))
                   const duration = Math.max(endHours - startHours, 0.5)
                   const top = startHours * HOUR_HEIGHT
-                  const height = duration * HOUR_HEIGHT
+                  const height = Math.max(duration * HOUR_HEIGHT, HALF_HOUR_HEIGHT)
+                  const isHoliday = event.type === 'holiday'
+                  const baseId = getBaseEventId(event.id)
 
-                  return (
-                    <button
-                      key={`${event.id}`}
+                  const eventContent = (
+                    <div
+                      className="relative h-full overflow-hidden border-l-3 px-1 py-0.5 text-left text-xs"
+                      style={{
+                        borderLeftColor: event.color,
+                        backgroundColor: `${event.color}1a`,
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
                         onSelectEvent(event)
                       }}
-                      className="absolute z-10 overflow-hidden border-l-3 px-1 py-0.5 text-left text-xs"
-                      style={{
-                        borderLeftColor: event.color,
-                        backgroundColor: `${event.color}1a`,
-                        top,
-                        height: Math.max(height, HALF_HOUR_HEIGHT),
-                        left: `${left}%`,
-                        width: `${width}%`,
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation()
+                          onSelectEvent(event)
+                        }
                       }}
                       title={event.title}
                     >
@@ -312,7 +592,48 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent }: 
                       <div className="truncate font-data text-dr-secondary">
                         {formatTime(new Date(event.start))} – {formatTime(new Date(event.end))}
                       </div>
-                    </button>
+                      {/* Resize handle */}
+                      {!isHoliday && onEventResize && (
+                        <ResizeHandle event={event} onEventResize={resizeHandler} />
+                      )}
+                    </div>
+                  )
+
+                  if (isHoliday) {
+                    return (
+                      <div
+                        key={`${event.id}`}
+                        className="absolute z-10"
+                        style={{
+                          top,
+                          height,
+                          left: `${left}%`,
+                          width: `${width}%`,
+                        }}
+                      >
+                        {eventContent}
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <DraggableEvent
+                      key={`${event.id}`}
+                      eventId={baseId}
+                      start={event.start}
+                      end={event.end}
+                      allDay={false}
+                      sourceView="week"
+                      className="absolute z-10"
+                      style={{
+                        top,
+                        height,
+                        left: `${left}%`,
+                        width: `${width}%`,
+                      }}
+                    >
+                      {eventContent}
+                    </DraggableEvent>
                   )
                 })}
               </div>
