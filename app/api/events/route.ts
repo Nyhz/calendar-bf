@@ -101,13 +101,39 @@ export async function GET(request: NextRequest) {
     const where = conditions.length > 0 ? and(...conditions) : undefined
     const rows = await db.select().from(events).where(where)
 
+    // Deduplicate holidays that share the same title+date across regions.
+    // When a holiday appears in multiple regions (e.g. national + ES-PV),
+    // keep only the one with highest priority: national > ES-PV > ES-MD.
+    const regionPriority: Record<string, number> = { national: 0, 'ES-PV': 1, 'ES-MD': 2 }
+    const holidaySeen = new Map<string, number>()
+    const deduped: Event[] = []
+
+    for (const event of rows) {
+      if (event.type === 'holiday' && event.region) {
+        const key = `${event.title}::${event.start}`
+        const existingIdx = holidaySeen.get(key)
+        if (existingIdx !== undefined) {
+          // Keep the one with higher priority (lower number)
+          const existing = deduped[existingIdx]
+          const existingPri = regionPriority[existing.region ?? ''] ?? 99
+          const currentPri = regionPriority[event.region] ?? 99
+          if (currentPri < existingPri) {
+            deduped[existingIdx] = event
+          }
+          continue
+        }
+        holidaySeen.set(key, deduped.length)
+      }
+      deduped.push(event)
+    }
+
     // Expand recurring events if a date range is provided
     if (start && end) {
       const rangeStart = new Date(start)
       const rangeEnd = new Date(end)
       const result: Event[] = []
 
-      for (const event of rows) {
+      for (const event of deduped) {
         result.push(event)
         if (event.recurrence && event.recurrence !== 'none') {
           result.push(...expandRecurring(event, rangeStart, rangeEnd))
@@ -117,7 +143,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: result })
     }
 
-    return NextResponse.json({ data: rows })
+    return NextResponse.json({ data: deduped })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })
