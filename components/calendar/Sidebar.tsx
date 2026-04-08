@@ -17,16 +17,16 @@ type SidebarProps = {
 }
 
 const EVENT_TYPES = [
-  { key: 'event', label: 'Event' },
-  { key: 'meeting', label: 'Meeting' },
-  { key: 'birthday', label: 'Birthday' },
-  { key: 'reminder', label: 'Reminder' },
-  { key: 'holiday', label: 'Holiday' },
+  { key: 'event', label: 'Eventos' },
+  { key: 'meeting', label: 'Reuniones' },
+  { key: 'birthday', label: 'Cumpleaños' },
+  { key: 'reminder', label: 'Recordatorios' },
+  { key: 'holiday', label: 'Festivos' },
 ] as const
 
 const HOLIDAY_REGIONS = [
-  { key: 'national', label: 'National' },
-  { key: 'ES-PV', label: 'Basque Country' },
+  { key: 'national', label: 'Nacionales' },
+  { key: 'ES-PV', label: 'País Vasco' },
   { key: 'ES-MD', label: 'Madrid' },
 ] as const
 
@@ -57,7 +57,7 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
       {/* Section 2: Event type filters */}
       <div className="px-3">
         <h3 className="mb-2 font-tactical text-[10px] uppercase tracking-widest text-dr-secondary">
-          Event types
+          Tipos de evento
         </h3>
         <ul className="space-y-0.5">
           {EVENT_TYPES.map(({ key, label }) => {
@@ -85,11 +85,6 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
                       </svg>
                     )}
                   </span>
-                  <span
-                    className="mr-1 h-2 w-2 shrink-0"
-                    style={{ backgroundColor: TYPE_COLORS[key] }}
-                    aria-hidden="true"
-                  />
                   <span className="font-data text-sm text-dr-secondary">{label}</span>
                 </label>
               </li>
@@ -104,7 +99,7 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
       {/* Section 3: Holiday region toggles */}
       <div className="px-3">
         <h3 className="mb-2 font-tactical text-[10px] uppercase tracking-widest text-dr-secondary">
-          Holiday regions
+          Festivos
         </h3>
         <ul className="space-y-0.5">
           {HOLIDAY_REGIONS.map(({ key, label }) => {

@@ -356,7 +356,7 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent, onE
       {allDayEvents.length > 0 && (
         <div className="flex border-b border-dr-border bg-dr-surface px-4 py-1">
           <span className="mr-4 self-center font-tactical text-xs uppercase tracking-wider text-dr-muted">
-            All day
+            Todo el día
           </span>
           <DroppableAllDayArea dateStr={dateStr}>
             {allDayEvents.map(event => {

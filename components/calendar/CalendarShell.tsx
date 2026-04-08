@@ -268,9 +268,9 @@ function CalendarShellInner() {
 
   const views: ViewType[] = ['month', 'week', 'day', 'agenda']
   const viewLabels: Record<ViewType, string> = {
-    month: 'Month',
-    week: 'Week',
-    day: 'Day',
+    month: 'Mes',
+    week: 'Semana',
+    day: 'Día',
     agenda: 'Agenda',
   }
 
@@ -283,7 +283,7 @@ function CalendarShellInner() {
         <button
           onClick={goPrev}
           className="p-2 text-dr-muted transition-all hover:text-dr-green hover:shadow-glow-green"
-          aria-label="Previous"
+          aria-label="Anterior"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -292,7 +292,7 @@ function CalendarShellInner() {
         <button
           onClick={goNext}
           className="p-2 text-dr-muted transition-all hover:text-dr-green hover:shadow-glow-green"
-          aria-label="Next"
+          aria-label="Siguiente"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -307,7 +307,7 @@ function CalendarShellInner() {
           onClick={goToday}
           className="border border-dr-green px-3 py-1 font-tactical text-sm uppercase tracking-wider text-dr-green transition-all hover:bg-dr-green/10 hover:shadow-glow-green"
         >
-          Today
+          Hoy
         </button>
 
         <div className="ml-auto flex items-center border border-dr-border bg-dr-bg">
@@ -384,7 +384,7 @@ function CalendarShellInner() {
       <button
         onClick={() => handleCreateEvent()}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center border border-dr-green bg-dr-green/10 text-dr-green shadow-glow-green transition-all hover:bg-dr-green/20"
-        aria-label="Create event"
+        aria-label="Crear evento"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

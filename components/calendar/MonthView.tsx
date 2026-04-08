@@ -156,7 +156,7 @@ function DroppableDayCell({
               e.stopPropagation()
             }}
           >
-            +{overflowCount} more
+            +{overflowCount} más
           </button>
         )}
       </div>

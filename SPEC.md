@@ -144,7 +144,9 @@ Behavior:
 
 ### 2.3 Quick-Create Popover
 
-Minimal form triggered by clicking a day/time cell. Fields: title (required), date/time (pre-filled). Submit creates event with type defaults. A "More options" link opens the full EventForm.
+**Status: Not yet implemented.** Currently, clicking a day/time cell opens the full EventForm with the date pre-filled. The quick-create popover (minimal inline form with just title + pre-filled date and a "More options" link) is a future enhancement.
+
+Spec (when implemented): Minimal form triggered by clicking a day/time cell. Fields: title (required), date/time (pre-filled). Submit creates event with type defaults. A "More options" link opens the full EventForm.
 
 ### 2.4 EventPopover
 
@@ -295,17 +297,17 @@ A holiday with `global === true` is stored as `national` regardless of `counties
 
 | Command | Response |
 |---|---|
-| `/hoy` | List of today's events formatted in Spanish. If none: "No tienes eventos hoy." |
-| `/mañana` | List of tomorrow's events. If none: "No tienes eventos mañana." |
-| `/semana` | List of this week's events grouped by day. If none: "No tienes eventos esta semana." |
+| `/start` | Welcome message with usage instructions (in Spanish). |
+| `/today` | List of today's events. If none: "No tienes eventos programados para hoy. 🎉" |
+| `/summary` | Generates an AI daily summary (weekly on Mondays) via Claude and sends it. |
 
 Event list format:
 ```
-📅 Lunes 7 de abril
+📅 Eventos de hoy:
 
-• 10:00 - Reunión con equipo
-• 15:30 - Dentista (Clínica Centro)
-• Todo el día - Festivo Nacional
+• 10:00 — Reunión con equipo
+• 15:30 — Dentista — 📍 Clínica Centro
+• Todo el día — Festivo Nacional
 ```
 
 ### 5.3 Natural-Language Event Creation (Text)
@@ -401,29 +403,11 @@ Callback data format: `confirm:{tempId}`, `edit:{tempId}`, `cancel:{tempId}`.
 ### 7.2 Summary Generation
 
 1. Fetch today's events (full day, Madrid tz).
-2. Fetch tomorrow's events.
-3. Fetch events in the next 3 days where `type = 'birthday'`.
-4. Build a plain-text context block:
-   ```
-   Hoy (lunes 7 de abril):
-   - 10:00 Reunión con equipo
-   - 15:30 Dentista
-   
-   Mañana (martes 8 de abril):
-   - Todo el día: Festivo (Lunes de Pascua)
-   
-   Próximos cumpleaños:
-   - María García — pasado mañana (9 de abril)
-   ```
-5. Call Claude subprocess with Spanish summary system prompt:
-   ```
-   Eres un asistente personal. Basándote en los eventos, genera un resumen 
-   diario amigable en español. Sé breve (2-4 frases). Incluye los eventos 
-   más importantes de hoy, menciona si mañana hay algo destacable, y felicita 
-   por los cumpleaños próximos si los hay.
-   ```
-6. Upsert result to `summaries` table: `INSERT OR REPLACE INTO summaries (date, content, generated_at)`.
-7. Send summary text via Telegram to authorized user.
+2. On Mondays: also fetch the rest of the week's events (Tue–Sun) for a weekly briefing.
+3. Pass events as JSON to Claude subprocess with a Spanish summary system prompt.
+4. Claude generates a concise summary in Spanish (daily or weekly depending on day).
+5. Upsert result to `summaries` table: `INSERT OR REPLACE INTO summaries (date, content, generated_at)`.
+6. Send summary text via Telegram to authorized user.
 
 ### 7.3 Summary Banner (UI)
 

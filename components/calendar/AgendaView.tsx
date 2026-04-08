@@ -67,7 +67,7 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
     return (
       <div className="flex h-full items-center justify-center bg-dr-bg p-4">
         <span className="font-tactical text-sm uppercase tracking-widest text-dr-muted">
-          No events scheduled
+          No hay eventos programados
         </span>
       </div>
     )
@@ -99,7 +99,7 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
                 />
                 <span className="w-28 shrink-0 font-data text-sm text-dr-secondary">
                   {event.allDay || event.type === 'holiday'
-                    ? 'All day'
+                    ? 'Todo el día'
                     : event.type === 'reminder'
                       ? formatTime(new Date(event.start))
                       : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}

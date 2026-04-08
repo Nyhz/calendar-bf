@@ -26,14 +26,20 @@ import type { Event } from '@/lib/db/schema'
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
 const EVENT_TYPES = ['event', 'meeting', 'birthday', 'reminder'] as const
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  event: 'Evento',
+  meeting: 'Reunión',
+  birthday: 'Cumpleaños',
+  reminder: 'Recordatorio',
+}
 const RECURRENCE_OPTIONS = ['none', 'daily', 'weekly', 'monthly', 'yearly'] as const
 
 const RECURRENCE_LABELS: Record<string, string> = {
-  none: 'No repeat',
-  daily: 'Daily',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
-  yearly: 'Yearly',
+  none: 'Sin repetición',
+  daily: 'Diario',
+  weekly: 'Semanal',
+  monthly: 'Mensual',
+  yearly: 'Anual',
 }
 
 type EventFormProps = {
@@ -165,9 +171,9 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
-    if (!title.trim()) errs.title = 'Title is required'
+    if (!title.trim()) errs.title = 'El título es obligatorio'
     if (!allDay && type !== 'reminder' && start && end && new Date(end) <= new Date(start)) {
-      errs.end = 'End time must be after start time'
+      errs.end = 'La hora de fin debe ser posterior a la de inicio'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -213,7 +219,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         })
         if (!res.ok) {
           const data = await res.json()
-          setErrors({ form: data.error ?? 'Failed to update' })
+          setErrors({ form: data.error ?? 'Error al actualizar' })
           return
         }
       } else {
@@ -224,7 +230,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
         })
         if (!res.ok) {
           const data = await res.json()
-          setErrors({ form: data.error ?? 'Failed to create event' })
+          setErrors({ form: data.error ?? 'Error al crear el evento' })
           return
         }
       }
@@ -232,7 +238,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
       mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/events'))
       onClose()
     } catch {
-      setErrors({ form: 'Connection error' })
+      setErrors({ form: 'Error de conexión' })
     } finally {
       setSubmitting(false)
     }
@@ -243,7 +249,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
       <TacModalContent showCloseButton={false} className="sm:max-w-lg">
         <TacModalHeader>
           <TacModalTitle>
-            {isEdit ? 'EDIT EVENT' : 'CREATE EVENT'}
+            {isEdit ? 'EDITAR EVENTO' : 'CREAR EVENTO'}
           </TacModalTitle>
         </TacModalHeader>
 
@@ -257,13 +263,13 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
           {/* Title */}
           <div>
             <label htmlFor="event-title" className={labelClass}>
-              Title
+              Título
             </label>
             <TacInput
               id="event-title"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Event title..."
+              placeholder="Título del evento..."
               autoFocus
             />
             {errors.title && (
@@ -280,7 +286,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
                 onChange={e => setAllDay(e.target.checked)}
                 className="size-4 cursor-pointer appearance-none border border-dr-border bg-dr-bg checked:border-dr-green checked:bg-dr-green"
               />
-              All day
+              Todo el día
             </label>
           )}
 
@@ -288,7 +294,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
           <div className={type === 'reminder' ? '' : 'grid grid-cols-2 gap-3'}>
             <div>
               <label htmlFor="event-start" className={labelClass}>
-                {type === 'reminder' ? 'When' : 'Start'}
+                {type === 'reminder' ? 'Cuándo' : 'Inicio'}
               </label>
               <input
                 id="event-start"
@@ -304,7 +310,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
             {type !== 'reminder' && (
               <div>
                 <label htmlFor="event-end" className={labelClass}>
-                  End
+                  Fin
                 </label>
                 <input
                   id="event-end"
@@ -327,7 +333,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>
-                Type
+                Tipo
               </label>
               <TacSelect value={type} onValueChange={(v) => { if (v) handleTypeChange(v) }}>
                 <TacSelectTrigger className="w-full">
@@ -340,7 +346,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
                         className="mr-1.5 inline-block size-2.5"
                         style={{ backgroundColor: TYPE_COLORS[t] }}
                       />
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                      {EVENT_TYPE_LABELS[t]}
                     </TacSelectItem>
                   ))}
                 </TacSelectContent>
@@ -366,34 +372,34 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
           {/* Description */}
           <div>
             <label htmlFor="event-description" className={labelClass}>
-              Description
+              Descripción
             </label>
             <TacTextarea
               id="event-description"
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={3}
-              placeholder="Event description..."
+              placeholder="Descripción del evento..."
             />
           </div>
 
           {/* Location */}
           <div>
             <label htmlFor="event-location" className={labelClass}>
-              Location
+              Ubicación
             </label>
             <TacInput
               id="event-location"
               value={location}
               onChange={e => setLocation(e.target.value)}
-              placeholder="Location..."
+              placeholder="Ubicación..."
             />
           </div>
 
           {/* Recurrence */}
           <div>
             <label className={labelClass}>
-              Recurrence
+              Repetición
             </label>
             <TacSelect value={recurrence} onValueChange={(v) => { if (v) setRecurrence(v) }}>
               <TacSelectTrigger className="w-full">
@@ -418,7 +424,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
             size="sm"
             onClick={onClose}
           >
-            Cancel
+            Cancelar
           </TacButton>
           <TacButton
             type="submit"
@@ -433,7 +439,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
               }
             }}
           >
-            {submitting ? 'Saving...' : isEdit ? 'SAVE' : 'CREATE'}
+            {submitting ? 'Guardando...' : isEdit ? 'GUARDAR' : 'CREAR'}
           </TacButton>
         </TacModalFooter>
       </TacModalContent>

@@ -11,10 +11,10 @@ import type { Event } from '@/lib/db/schema'
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
 const RECURRENCE_LABELS: Record<string, string> = {
-  daily: 'Repeats daily',
-  weekly: 'Repeats weekly',
-  monthly: 'Repeats monthly',
-  yearly: 'Repeats yearly',
+  daily: 'Se repite a diario',
+  weekly: 'Se repite semanalmente',
+  monthly: 'Se repite mensualmente',
+  yearly: 'Se repite anualmente',
 }
 
 const EVENT_TYPE_BADGE_COLOR: Record<string, string> = {
@@ -161,7 +161,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
         {event.allDay === 1 && (
           <span className="ml-2 inline-flex items-center font-tactical text-xs tracking-wider text-dr-dim">
             <span aria-hidden="true">&bull;</span>
-            <span className="ml-1.5">ALL DAY</span>
+            <span className="ml-1.5">TODO EL DÍA</span>
           </span>
         )}
       </div>
@@ -200,7 +200,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
           {confirming ? (
             <>
               <span className="self-center font-tactical text-xs tracking-wider text-dr-red uppercase">
-                Confirm deletion?
+                ¿Eliminar?
               </span>
               <TacButton
                 variant="ghost"
@@ -215,7 +215,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
                 onClick={handleDelete}
                 disabled={deleting}
               >
-                {deleting ? 'Deleting...' : 'Yes, delete'}
+                {deleting ? 'Eliminando...' : 'Sí, eliminar'}
               </TacButton>
             </>
           ) : (
@@ -225,14 +225,14 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
                 size="sm"
                 onClick={handleDelete}
               >
-                Delete
+                Eliminar
               </TacButton>
               <TacButton
                 variant="success"
                 size="sm"
                 onClick={() => onEdit(event!)}
               >
-                Edit
+                Editar
               </TacButton>
             </>
           )}

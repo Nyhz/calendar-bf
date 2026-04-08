@@ -52,7 +52,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
         <button
           onClick={goPrevMonth}
           className="border border-dr-border p-1 text-dr-muted transition-colors hover:border-dr-dim hover:text-dr-green"
-          aria-label="Previous month"
+          aria-label="Mes anterior"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -62,7 +62,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
         <button
           onClick={goNextMonth}
           className="border border-dr-border p-1 text-dr-muted transition-colors hover:border-dr-dim hover:text-dr-green"
-          aria-label="Next month"
+          aria-label="Mes siguiente"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

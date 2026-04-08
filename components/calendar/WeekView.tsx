@@ -441,7 +441,7 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent, on
       {allDayEvents.length > 0 && (
         <div className="flex border-b border-dr-border bg-dr-surface">
           <div className="flex w-16 shrink-0 items-center justify-center font-tactical text-xs uppercase tracking-wider text-dr-muted">
-            All day
+            Todo el día
           </div>
           <div className="flex flex-1">
             {weekDays.map((day, i) => {

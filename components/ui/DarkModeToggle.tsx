@@ -9,8 +9,8 @@ export function DarkModeToggle() {
     <button
       onClick={toggle}
       className="rounded-lg p-2 text-text-muted transition-colors hover:bg-hover"
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
     >
       {isDark ? (
         <svg

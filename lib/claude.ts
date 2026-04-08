@@ -73,24 +73,24 @@ export async function generateDailySummary(
   const isMonday = !!weekEvents
 
   const systemPrompt = isMonday
-    ? `You are a personal calendar assistant. Generate a concise weekly briefing in English for Monday ${date}.
+    ? `Eres un asistente personal de calendario. Genera un resumen semanal conciso en español para el lunes ${date}.
 
-Start with today's events, then give a brief overview of the rest of the week. For each event, mention the day, time (in Europe/Madrid timezone), and title. If the event has a location, include it. Group events chronologically by day.
+Empieza con los eventos de hoy, luego da un breve repaso del resto de la semana. Para cada evento, menciona el día, la hora (en zona horaria Europe/Madrid) y el título. Si el evento tiene ubicación, inclúyela. Agrupa los eventos cronológicamente por día.
 
-If a day has no events, you can skip it. If the entire week is free, say so.
+Si un día no tiene eventos, puedes saltarlo. Si toda la semana está libre, dilo.
 
-Respond only with the summary text, without headers or markdown formatting.`
-    : `You are a personal calendar assistant. Generate a concise daily summary in English for the given date.
+Responde solo con el texto del resumen, sin encabezados ni formato markdown.`
+    : `Eres un asistente personal de calendario. Genera un resumen diario conciso en español para la fecha indicada.
 
-For each event, mention the time (in Europe/Madrid timezone) and the title. If the event has a location, include it. Group events chronologically.
+Para cada evento, menciona la hora (en zona horaria Europe/Madrid) y el título. Si el evento tiene ubicación, inclúyela. Agrupa los eventos cronológicamente.
 
-If there are no events, indicate that the day is free.
+Si no hay eventos, indica que el día está libre.
 
-Respond only with the summary text, without headers or markdown formatting.`
+Responde solo con el texto del resumen, sin encabezados ni formato markdown.`
 
   const userMessage = isMonday
-    ? `Date: ${date}\n\nToday's events:\n${JSON.stringify(todayEvents, null, 2)}\n\nRest of the week:\n${JSON.stringify(weekEvents, null, 2)}`
-    : `Date: ${date}\n\nEvents:\n${JSON.stringify(todayEvents, null, 2)}`
+    ? `Fecha: ${date}\n\nEventos de hoy:\n${JSON.stringify(todayEvents, null, 2)}\n\nResto de la semana:\n${JSON.stringify(weekEvents, null, 2)}`
+    : `Fecha: ${date}\n\nEventos:\n${JSON.stringify(todayEvents, null, 2)}`
 
   return runClaude(systemPrompt, userMessage)
 }
