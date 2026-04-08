@@ -37,7 +37,7 @@ const fetcher = async (url: string) => {
 }
 
 function formatDateParam(date: Date): string {
-  return date.toISOString().split('T')[0]
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(date)
 }
 
 function getVisibleRange(date: Date, view: ViewType): { start: Date; end: Date } {

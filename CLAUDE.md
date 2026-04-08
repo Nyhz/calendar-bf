@@ -308,7 +308,7 @@ DATABASE_URL=./local.db           # SQLite file path
 NODE_ENV=development              # development | production
 ```
 
-Claude Code CLI: no env var — must be pre-authenticated via `claude auth login` on the host.
+Claude Code CLI: requires `CLAUDE_CODE_OAUTH_TOKEN` in `.env.local` (from `claude setup-token`).
 
 ---
 

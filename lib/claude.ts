@@ -42,16 +42,18 @@ export async function parseEventFromText(freeText: string): Promise<ParsedEvent>
 
 The current timezone is Europe/Madrid. Today's date is ${today}.
 
-Return ONLY a valid JSON object with these fields:
-- title (string, required)
-- start (string, ISO 8601 UTC, required)
-- end (string, ISO 8601 UTC, required)
-- allDay (boolean, required)
-- type (one of: "event", "meeting", "birthday", "reminder")
-- location (string, optional — omit if not mentioned)
-- description (string, optional — omit if not mentioned)
+Return ONLY a valid JSON object with exactly these fields:
+{
+  "title": string (required — short event title),
+  "start": string (required — ISO 8601 UTC, e.g. "2026-04-10T15:00:00Z"),
+  "end": string (required — ISO 8601 UTC, defaults to 1 hour after start if not specified. For reminders, end MUST equal start — reminders are point-in-time, they have no duration),
+  "allDay": boolean (required — true only if explicitly an all-day event),
+  "type": string (required — one of: "event", "meeting", "birthday", "reminder". Use "reminder" when the user's intent is to be reminded about something),
+  "location": string or null (required — null if not mentioned),
+  "description": string (required — always generate a brief description from the context provided, even if minimal. Capture who, what, or why if inferable.)
+}
 
-Do not wrap the JSON in markdown code blocks. Return only the raw JSON object.`
+All fields are required. Never omit any field. Do not wrap the JSON in markdown code blocks. Return only the raw JSON object, nothing else.`
 
   const response = await runClaude(systemPrompt, freeText)
 
@@ -63,8 +65,22 @@ Do not wrap the JSON in markdown code blocks. Return only the raw JSON object.`
   return JSON.parse(cleaned) as ParsedEvent
 }
 
-export async function generateDailySummary(date: string, events: SummaryEvent[]): Promise<string> {
-  const systemPrompt = `You are a personal calendar assistant. Generate a concise daily summary in English for the given date.
+export async function generateDailySummary(
+  date: string,
+  todayEvents: SummaryEvent[],
+  weekEvents?: SummaryEvent[],
+): Promise<string> {
+  const isMonday = !!weekEvents
+
+  const systemPrompt = isMonday
+    ? `You are a personal calendar assistant. Generate a concise weekly briefing in English for Monday ${date}.
+
+Start with today's events, then give a brief overview of the rest of the week. For each event, mention the day, time (in Europe/Madrid timezone), and title. If the event has a location, include it. Group events chronologically by day.
+
+If a day has no events, you can skip it. If the entire week is free, say so.
+
+Respond only with the summary text, without headers or markdown formatting.`
+    : `You are a personal calendar assistant. Generate a concise daily summary in English for the given date.
 
 For each event, mention the time (in Europe/Madrid timezone) and the title. If the event has a location, include it. Group events chronologically.
 
@@ -72,7 +88,9 @@ If there are no events, indicate that the day is free.
 
 Respond only with the summary text, without headers or markdown formatting.`
 
-  const userMessage = `Fecha: ${date}\n\nEventos:\n${JSON.stringify(events, null, 2)}`
+  const userMessage = isMonday
+    ? `Date: ${date}\n\nToday's events:\n${JSON.stringify(todayEvents, null, 2)}\n\nRest of the week:\n${JSON.stringify(weekEvents, null, 2)}`
+    : `Date: ${date}\n\nEvents:\n${JSON.stringify(todayEvents, null, 2)}`
 
   return runClaude(systemPrompt, userMessage)
 }

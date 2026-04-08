@@ -1,12 +1,13 @@
 import { startBot } from './bot'
 import { startCronJobs } from '../cron'
 
-let started = false
+// Persist init state across hot reloads in dev mode
+const globalForInit = globalThis as unknown as { __telegramInitDone?: boolean }
 
 export function initTelegramBot(): void {
-  if (started) return
+  if (globalForInit.__telegramInitDone) return
   if (typeof window !== 'undefined') return
-  started = true
+  globalForInit.__telegramInitDone = true
 
   startBot()
   startCronJobs()

@@ -8,7 +8,11 @@ const execFileAsync = promisify(execFile)
 
 export async function transcribeAudio(filePath: string): Promise<string> {
   const backend = process.env.WHISPER_BACKEND || 'mlx-whisper'
-  const model = process.env.WHISPER_MODEL || 'base'
+  const rawModel = process.env.WHISPER_MODEL || 'base'
+  // mlx-whisper expects full HuggingFace repo IDs (e.g. mlx-community/whisper-base-mlx)
+  const model = backend === 'mlx-whisper' && !rawModel.includes('/')
+    ? `mlx-community/whisper-${rawModel}-mlx`
+    : rawModel
 
   try {
     if (backend === 'mlx-whisper') {
@@ -17,6 +21,7 @@ export async function transcribeAudio(filePath: string): Promise<string> {
         '--model', model,
         '--language', 'es',
         '--output-format', 'txt',
+        '--output-dir', dirname(filePath),
         filePath,
       ])
     } else if (backend === 'whisper.cpp') {
