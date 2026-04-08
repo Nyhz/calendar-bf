@@ -36,6 +36,25 @@ function getTodayRangeMadrid(): { start: string; end: string; dateStr: string } 
   }
 }
 
+function isMondayMadrid(): boolean {
+  const dow = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid',
+    weekday: 'short',
+  }).format(new Date())
+  return dow === 'Mon'
+}
+
+function getSundayFromDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + 6)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+}
+
 function formatEventTime(isoStr: string): string {
   const date = new Date(isoStr)
   return new Intl.DateTimeFormat('en-US', {
@@ -46,13 +65,26 @@ function formatEventTime(isoStr: string): string {
 }
 
 function formatParsedEvent(ev: PendingEvent): string {
-  const startTime = formatEventTime(ev.start)
-  const endTime = formatEventTime(ev.end)
   const lines = [
     `📅 *${ev.title}*`,
-    `🕐 ${startTime} — ${endTime}`,
-    `📌 Type: ${ev.type}`,
   ]
+  if (ev.allDay) {
+    const dateFmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Madrid',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(ev.start))
+    lines.push(`🗓 ${dateFmt} (all day)`)
+  } else if (ev.type === 'reminder') {
+    lines.push(`🕐 ${formatEventTime(ev.start)}`)
+  } else {
+    const startTime = formatEventTime(ev.start)
+    const endTime = formatEventTime(ev.end)
+    lines.push(`🕐 ${startTime} — ${endTime}`)
+  }
+  lines.push(`📌 Type: ${ev.type}`)
   if (ev.location) lines.push(`📍 ${ev.location}`)
   if (ev.description) lines.push(`📝 ${ev.description}`)
   return lines.join('\n')
@@ -153,16 +185,31 @@ export function registerHandlers(bot: Bot): void {
         .from(events)
         .where(and(gte(events.start, start), lte(events.start, end)))
 
-      const summaryEvents = todayEvents.map((ev) => ({
+      const toSummaryEvent = (ev: typeof todayEvents[number]) => ({
         title: ev.title,
         start: ev.start,
         end: ev.end,
         type: ev.type,
         location: ev.location,
-      }))
+      })
+
+      const todaySummaryEvents = todayEvents.map(toSummaryEvent)
+
+      let weekSummaryEvents: ReturnType<typeof toSummaryEvent>[] | undefined
+      if (isMondayMadrid()) {
+        const sundayStr = getSundayFromDate(dateStr)
+        const tomorrow = new Date(dateStr + 'T12:00:00')
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const tomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrow)
+        const restOfWeek = await db
+          .select()
+          .from(events)
+          .where(and(gte(events.start, `${tomorrowStr}T00:00:00Z`), lte(events.start, `${sundayStr}T23:59:59Z`)))
+        weekSummaryEvents = restOfWeek.map(toSummaryEvent)
+      }
 
       await ctx.reply('🔄 Generating summary...')
-      const summary = await generateDailySummary(dateStr, summaryEvents)
+      const summary = await generateDailySummary(dateStr, todaySummaryEvents, weekSummaryEvents)
       await ctx.reply(summary)
     } catch (error) {
       console.error('[Telegram] /summary error:', error)

@@ -100,7 +100,9 @@ export function AgendaView({ currentDate, events, onSelectEvent }: AgendaViewPro
                 <span className="w-28 shrink-0 font-data text-sm text-dr-secondary">
                   {event.allDay || event.type === 'holiday'
                     ? 'All day'
-                    : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}
+                    : event.type === 'reminder'
+                      ? formatTime(new Date(event.start))
+                      : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}
                 </span>
                 <span className="truncate font-tactical text-sm text-dr-text">
                   {event.title}

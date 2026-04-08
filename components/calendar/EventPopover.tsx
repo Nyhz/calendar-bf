@@ -31,7 +31,7 @@ type EventPopoverProps = {
   onEdit: (event: Event) => void
 }
 
-function formatDateRange(start: string, end: string, allDay: number): string {
+function formatDateRange(start: string, end: string, allDay: number, type?: string): string {
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     weekday: 'long',
@@ -74,6 +74,10 @@ function formatDateRange(start: string, end: string, allDay: number): string {
   const endDateStr = dateFmt.format(endDate)
   const startTime = timeFmt.format(startDate)
   const endTime = timeFmt.format(endDate)
+
+  if (type === 'reminder') {
+    return `${startDateStr}, ${startTime}`
+  }
 
   if (startDateStr === endDateStr) {
     return `${startDateStr}, ${startTime} – ${endTime}`
@@ -164,7 +168,7 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
 
       {/* Date/Time */}
       <p className="font-data text-sm text-dr-secondary mb-3">
-        {formatDateRange(event.start, event.end, (event.allDay || event.type === 'holiday') ? 1 : 0)}
+        {formatDateRange(event.start, event.end, (event.allDay || event.type === 'holiday') ? 1 : 0, event.type)}
       </p>
 
       {/* Location */}

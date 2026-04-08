@@ -145,6 +145,14 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
     if (color === TYPE_COLORS[type]) {
       setColor(TYPE_COLORS[newType] ?? TYPE_COLORS['event'])
     }
+    if (newType === 'birthday') {
+      setRecurrence('yearly')
+      setAllDay(true)
+    }
+    if (newType === 'reminder') {
+      setAllDay(false)
+      setEnd(start)
+    }
   }
 
   // Auto-adjust end when start changes
@@ -158,7 +166,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
   function validate(): boolean {
     const errs: Record<string, string> = {}
     if (!title.trim()) errs.title = 'Title is required'
-    if (!allDay && start && end && new Date(end) <= new Date(start)) {
+    if (!allDay && type !== 'reminder' && start && end && new Date(end) <= new Date(start)) {
       errs.end = 'End time must be after start time'
     }
     setErrors(errs)
@@ -181,7 +189,7 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
       endUtc = `${endDate}T23:59:59Z`
     } else {
       startUtc = localInputToUtc(start)
-      endUtc = localInputToUtc(end)
+      endUtc = type === 'reminder' ? startUtc : localInputToUtc(end)
     }
 
     const body = {
@@ -263,22 +271,24 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
             )}
           </div>
 
-          {/* All Day */}
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-tactical uppercase tracking-wider text-dr-secondary">
-            <input
-              type="checkbox"
-              checked={allDay}
-              onChange={e => setAllDay(e.target.checked)}
-              className="size-4 cursor-pointer appearance-none border border-dr-border bg-dr-bg checked:border-dr-green checked:bg-dr-green"
-            />
-            All day
-          </label>
+          {/* All Day — hidden for reminders (reminders always have a specific time) */}
+          {type !== 'reminder' && (
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-tactical uppercase tracking-wider text-dr-secondary">
+              <input
+                type="checkbox"
+                checked={allDay}
+                onChange={e => setAllDay(e.target.checked)}
+                className="size-4 cursor-pointer appearance-none border border-dr-border bg-dr-bg checked:border-dr-green checked:bg-dr-green"
+              />
+              All day
+            </label>
+          )}
 
           {/* Start / End */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={type === 'reminder' ? '' : 'grid grid-cols-2 gap-3'}>
             <div>
               <label htmlFor="event-start" className={labelClass}>
-                Start
+                {type === 'reminder' ? 'When' : 'Start'}
               </label>
               <input
                 id="event-start"
@@ -291,24 +301,26 @@ export function EventForm({ open, onClose, event, defaultDate }: EventFormProps)
                 className={dateInputClass}
               />
             </div>
-            <div>
-              <label htmlFor="event-end" className={labelClass}>
-                End
-              </label>
-              <input
-                id="event-end"
-                type={allDay ? 'date' : 'datetime-local'}
-                value={allDay ? end.split('T')[0] : end}
-                onChange={e => {
-                  const val = allDay ? `${e.target.value}T23:59` : e.target.value
-                  setEnd(val)
-                }}
-                className={dateInputClass}
-              />
-              {errors.end && (
-                <p className="mt-1 text-xs font-tactical text-dr-red">{errors.end}</p>
-              )}
-            </div>
+            {type !== 'reminder' && (
+              <div>
+                <label htmlFor="event-end" className={labelClass}>
+                  End
+                </label>
+                <input
+                  id="event-end"
+                  type={allDay ? 'date' : 'datetime-local'}
+                  value={allDay ? end.split('T')[0] : end}
+                  onChange={e => {
+                    const val = allDay ? `${e.target.value}T23:59` : e.target.value
+                    setEnd(val)
+                  }}
+                  className={dateInputClass}
+                />
+                {errors.end && (
+                  <p className="mt-1 text-xs font-tactical text-dr-red">{errors.end}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Type + Color */}

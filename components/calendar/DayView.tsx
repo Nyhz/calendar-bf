@@ -482,7 +482,9 @@ export function DayView({ currentDate, events, onCreateEvent, onSelectEvent, onE
               >
                 <div className="truncate font-tactical text-xs uppercase text-dr-text">{event.title}</div>
                 <div className="truncate font-data text-dr-secondary">
-                  {formatTime(new Date(event.start))} – {formatTime(new Date(event.end))}
+                  {event.type === 'reminder'
+                    ? formatTime(new Date(event.start))
+                    : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}
                 </div>
               </button>
             )

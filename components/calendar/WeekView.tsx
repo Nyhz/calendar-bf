@@ -592,7 +592,9 @@ export function WeekView({ currentDate, events, onCreateEvent, onSelectEvent, on
                     >
                       <div className="truncate font-tactical text-xs uppercase text-dr-text">{event.title}</div>
                       <div className="truncate font-data text-dr-secondary">
-                        {formatTime(new Date(event.start))} – {formatTime(new Date(event.end))}
+                        {event.type === 'reminder'
+                          ? formatTime(new Date(event.start))
+                          : `${formatTime(new Date(event.start))} – ${formatTime(new Date(event.end))}`}
                       </div>
                       {/* Resize handle */}
                       {!isHoliday && onEventResize && (
