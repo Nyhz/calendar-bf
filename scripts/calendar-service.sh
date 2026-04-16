@@ -27,6 +27,36 @@ if [ -f "$MODE_FILE" ]; then
   MODE=$(cat "$MODE_FILE" | tr -d '[:space:]')
 fi
 
+# Pre-start cleanup — kill any process still holding our port from a previous
+# run. launchd's SIGKILL bypasses our SIGTERM trap, leaving orphan servers
+# (and multi-GB of leaked turbopack cache) behind.
+kill_port() {
+  local port="$1"
+  local pids
+  pids=$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)
+  if [ -n "$pids" ]; then
+    echo "[CALENDAR] Port ${port} held by PIDs: ${pids} — sending SIGTERM"
+    kill $pids 2>/dev/null || true
+    for _ in 1 2 3 4 5; do
+      pids=$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)
+      [ -z "$pids" ] && break
+      sleep 1
+    done
+    if [ -n "$pids" ]; then
+      echo "[CALENDAR] Port ${port} still held — sending SIGKILL to ${pids}"
+      kill -9 $pids 2>/dev/null || true
+      sleep 1
+    fi
+  fi
+}
+
+kill_port "$PORT"
+
+# Sweep stray calendar servers rooted under our working directory.
+pkill -f "next-server.*${CALENDAR_DIR}" 2>/dev/null || true
+pkill -f "next dev.*${CALENDAR_DIR}" 2>/dev/null || true
+sleep 1
+
 echo "[CALENDAR] Starting in ${MODE} mode on port ${PORT}..."
 
 # Ensure ALL child processes die when this script is killed.
