@@ -134,21 +134,17 @@ function CalendarShellInner() {
 
   const [view, setView] = useState<ViewType>(initialView)
   const [currentDate, setCurrentDate] = useState<Date>(initialDate)
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState<Filters>(() => {
+    if (typeof window === 'undefined') return DEFAULT_FILTERS
+    try {
+      const stored = localStorage.getItem('calendarFilters')
+      return stored ? (JSON.parse(stored) as Filters) : DEFAULT_FILTERS
+    } catch { return DEFAULT_FILTERS }
+  })
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createDate, setCreateDate] = useState<Date | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-
-  // Load filter preferences
-  useEffect(() => {
-    const stored = localStorage.getItem('calendarFilters')
-    if (stored) {
-      try {
-        setFilters(JSON.parse(stored))
-      } catch { /* use defaults */ }
-    }
-  }, [])
 
   // Persist filters
   useEffect(() => {

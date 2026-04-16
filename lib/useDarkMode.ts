@@ -5,17 +5,17 @@ import { useState, useEffect, useCallback } from 'react'
 const STORAGE_KEY = 'calendar-dark-mode'
 
 export function useDarkMode(): [boolean, () => void] {
-  const [isDark, setIsDark] = useState(false)
-
-  useEffect(() => {
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
     const stored = localStorage.getItem(STORAGE_KEY)
-    const prefersDark = stored !== null
+    return stored !== null
       ? stored === 'true'
       : window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
 
-    setIsDark(prefersDark)
-    document.documentElement.classList.toggle('dark', prefersDark)
-  }, [])
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark)
+  }, [isDark])
 
   const toggle = useCallback(() => {
     setIsDark(prev => {

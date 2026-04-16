@@ -290,27 +290,6 @@ function useAutoScrollOnDrag(containerRef: React.RefObject<HTMLDivElement | null
       pointerYRef.current = e.clientY
     }
 
-    const tick = () => {
-      if (!isDraggingRef.current || !containerRef.current) {
-        rafRef.current = null
-        return
-      }
-
-      const rect = containerRef.current.getBoundingClientRect()
-      const y = pointerYRef.current
-      const edgeZone = 50
-
-      if (y < rect.top + edgeZone && y > rect.top) {
-        const intensity = 1 - (y - rect.top) / edgeZone
-        containerRef.current.scrollBy(0, -10 * intensity)
-      } else if (y > rect.bottom - edgeZone && y < rect.bottom) {
-        const intensity = 1 - (rect.bottom - y) / edgeZone
-        containerRef.current.scrollBy(0, 10 * intensity)
-      }
-
-      rafRef.current = requestAnimationFrame(tick)
-    }
-
     document.addEventListener('pointermove', handlePointerMove)
 
     return () => {

@@ -19,7 +19,7 @@ type DndProviderProps = {
   children: ReactNode
 }
 
-export default function DndProvider({ onEventMove, onEventResize: _onEventResize, children }: DndProviderProps) {
+export default function DndProvider({ onEventMove, children }: DndProviderProps) {
   const [activeDrag, setActiveDrag] = useState<CalendarDragData | null>(null)
 
   const pointerSensor = useSensor(PointerSensor, {

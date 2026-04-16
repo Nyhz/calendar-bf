@@ -12,7 +12,6 @@ const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 const HOUR_HEIGHT = 48
 const HALF_HOUR_HEIGHT = HOUR_HEIGHT / 2
 const TOTAL_HOURS = 24
-const SLOT_MINUTES = 30
 const AUTO_SCROLL_ZONE = 40
 const AUTO_SCROLL_SPEED = 8
 
