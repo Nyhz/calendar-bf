@@ -30,6 +30,9 @@ type GoogleIntegrationStatus = {
 const googleFetcher = (u: string) =>
   fetch(u).then(r => r.json()).then(j => j.data as GoogleIntegrationStatus)
 
+const settingsFetcher = (u: string) =>
+  fetch(u).then(r => r.json()).then(j => j.data as Record<string, string>)
+
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
 type ViewType = 'month' | 'week' | 'day' | 'agenda'
@@ -173,6 +176,35 @@ function CalendarShellInner() {
     '/api/integrations/google',
     googleFetcher,
   )
+
+  // Fetch app settings (theme + default_view)
+  const { data: settings } = useSWR<Record<string, string>>('/api/settings', settingsFetcher)
+
+  // Apply theme from settings; falls back to system preference until settings load
+  useEffect(() => {
+    const theme = settings?.theme ?? 'system'
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else if (theme === 'light') {
+      root.classList.remove('dark')
+    } else {
+      // 'system': mirror prefers-color-scheme and listen for changes
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      root.classList.toggle('dark', mq.matches)
+      const handler = (e: MediaQueryListEvent) => root.classList.toggle('dark', e.matches)
+      mq.addEventListener('change', handler)
+      return () => mq.removeEventListener('change', handler)
+    }
+  }, [settings?.theme])
+
+  // Apply default_view from settings — only once, on first load, to avoid clobbering navigation
+  const appliedDefault = useRef(false)
+  useEffect(() => {
+    if (!settings?.default_view || appliedDefault.current) return
+    appliedDefault.current = true
+    setView(settings.default_view as ViewType)
+  }, [settings?.default_view])
 
   // Persist filters
   useEffect(() => {
