@@ -65,16 +65,38 @@ function utcToLocalInput(utcIso: string): string {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`
 }
 
+function tzOffsetMinutes(utcMs: number, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(utcMs))
+  const get = (t: string) => Number(parts.find(p => p.type === t)?.value)
+  const asUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour') === 24 ? 0 : get('hour'),
+    get('minute'),
+    get('second'),
+  )
+  return (asUtc - utcMs) / 60_000
+}
+
+// Interpret a "YYYY-MM-DDTHH:MM" string as wall-clock time in TIMEZONE
+// and return the corresponding UTC ISO — independent of the browser's timezone.
 function localInputToUtc(localValue: string): string {
-  const dateInMadrid = new Date(localValue)
-  const utcDate = new Date(
-    dateInMadrid.toLocaleString('en-US', { timeZone: 'UTC' })
-  )
-  const madridDate = new Date(
-    dateInMadrid.toLocaleString('en-US', { timeZone: TIMEZONE })
-  )
-  const offset = madridDate.getTime() - utcDate.getTime()
-  return new Date(dateInMadrid.getTime() - offset).toISOString()
+  const [datePart, timePart = '00:00'] = localValue.split('T')
+  const [y, mo, d] = datePart.split('-').map(Number)
+  const [h, mi] = timePart.split(':').map(Number)
+  const guess = Date.UTC(y, mo - 1, d, h, mi)
+  const offsetMin = tzOffsetMinutes(guess, TIMEZONE)
+  return new Date(guess - offsetMin * 60_000).toISOString()
 }
 
 function getDefaultStart(defaultDate?: Date | null): string {

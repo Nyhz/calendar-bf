@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Share_Tech_Mono, IBM_Plex_Mono, Courier_Prime } from "next/font/google";
 import "./globals.css";
-import { initTelegramBot } from "@/lib/telegram/init";
-
-initTelegramBot();
 
 const shareTechMono = Share_Tech_Mono({
   weight: "400",

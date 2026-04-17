@@ -25,6 +25,14 @@ const EVENT_TYPE_BADGE_COLOR: Record<string, string> = {
   holiday: 'text-dr-red',
 }
 
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  event: 'EVENTO',
+  meeting: 'REUNIÓN',
+  birthday: 'CUMPLEAÑOS',
+  reminder: 'RECORDATORIO',
+  holiday: 'FESTIVO',
+}
+
 type EventPopoverProps = {
   event: Event | null
   onClose: () => void
@@ -32,7 +40,7 @@ type EventPopoverProps = {
 }
 
 function formatDateRange(start: string, end: string, allDay: number, type?: string): string {
-  const fmt = new Intl.DateTimeFormat('en-US', {
+  const fmt = new Intl.DateTimeFormat('es-ES', {
     timeZone: TIMEZONE,
     weekday: 'long',
     day: 'numeric',
@@ -56,7 +64,7 @@ function formatDateRange(start: string, end: string, allDay: number, type?: stri
   const startDate = new Date(start)
   const endDate = new Date(end)
 
-  const dateFmt = new Intl.DateTimeFormat('en-US', {
+  const dateFmt = new Intl.DateTimeFormat('es-ES', {
     timeZone: TIMEZONE,
     weekday: 'long',
     day: 'numeric',
@@ -64,7 +72,7 @@ function formatDateRange(start: string, end: string, allDay: number, type?: stri
     year: 'numeric',
   })
 
-  const timeFmt = new Intl.DateTimeFormat('en-US', {
+  const timeFmt = new Intl.DateTimeFormat('es-ES', {
     timeZone: TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
@@ -155,10 +163,10 @@ export function EventPopover({ event, onClose, onEdit }: EventPopoverProps) {
           )}
         >
           <span aria-hidden="true">&bull;</span>
-          {event.type.toUpperCase()}
+          {EVENT_TYPE_LABEL[event.type] ?? event.type.toUpperCase()}
         </span>
 
-        {event.allDay === 1 && (
+        {event.allDay === 1 && event.type !== 'birthday' && (
           <span className="ml-2 inline-flex items-center font-tactical text-xs tracking-wider text-dr-dim">
             <span aria-hidden="true">&bull;</span>
             <span className="ml-1.5">TODO EL DÍA</span>

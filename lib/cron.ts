@@ -1,100 +1,41 @@
 import cron, { type ScheduledTask } from 'node-cron'
 import { db } from './db'
 import { events, summaries } from './db/schema'
-import { generateDailySummary } from './claude'
 import { bot } from './telegram/bot'
 import { and, eq, gte, lte } from 'drizzle-orm'
 import { getSetting } from './settings'
 import { syncGoogleCalendars } from './google/sync'
-
-function getTodayMadrid(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Madrid',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
-
-function isMondayMadrid(): boolean {
-  const dow = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Madrid',
-    weekday: 'short',
-  }).format(new Date())
-  return dow === 'Mon'
-}
-
-function getSundayMadrid(todayStr: string): string {
-  const d = new Date(todayStr + 'T12:00:00')
-  d.setDate(d.getDate() + 6)
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Madrid',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d)
-}
+import { generateAndStoreSummary, getTodayMadrid } from './summary'
 
 async function runDailySummary(): Promise<void> {
   console.log('[Cron] Daily summary job started')
-
   try {
     const dateStr = getTodayMadrid()
-    const start = `${dateStr}T00:00:00Z`
-    const end = `${dateStr}T23:59:59Z`
-
-    const todayEvents = await db
-      .select()
-      .from(events)
-      .where(and(gte(events.start, start), lte(events.start, end)))
-
-    const toSummaryEvent = (ev: typeof todayEvents[number]) => ({
-      title: ev.title,
-      start: ev.start,
-      end: ev.end,
-      type: ev.type,
-      location: ev.location,
-    })
-
-    const todaySummaryEvents = todayEvents.map(toSummaryEvent)
-
-    let weekSummaryEvents: ReturnType<typeof toSummaryEvent>[] | undefined
-    if (isMondayMadrid()) {
-      const sundayStr = getSundayMadrid(dateStr)
-      const tomorrowStr = new Date(dateStr + 'T12:00:00')
-      tomorrowStr.setDate(tomorrowStr.getDate() + 1)
-      const tomorrowStart = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrowStr) + 'T00:00:00Z'
-      const weekEnd = `${sundayStr}T23:59:59Z`
-
-      const restOfWeek = await db
-        .select()
-        .from(events)
-        .where(and(gte(events.start, tomorrowStart), lte(events.start, weekEnd)))
-
-      weekSummaryEvents = restOfWeek.map(toSummaryEvent)
-    }
-
-    const content = await generateDailySummary(dateStr, todaySummaryEvents, weekSummaryEvents)
-
-    await db
-      .insert(summaries)
-      .values({ date: dateStr, content })
-      .onConflictDoUpdate({
-        target: summaries.date,
-        set: { content, generatedAt: new Date().toISOString() },
-      })
-
-    console.log(`[Cron] Daily summary saved for ${dateStr}`)
-
-    const chatId = process.env.TELEGRAM_AUTHORIZED_USER_ID
-    if (bot && chatId) {
-      await bot.api.sendMessage(Number(chatId), `📊 *Daily summary (${dateStr}):*\n\n${content}`, {
-        parse_mode: 'Markdown',
-      })
-      console.log('[Cron] Summary sent to Telegram')
-    }
+    await generateAndStoreSummary(dateStr, { sendTelegram: true })
+    console.log(`[Cron] Daily summary saved & sent for ${dateStr}`)
   } catch (error) {
     console.error('[Cron] Daily summary job failed:', error)
+  }
+}
+
+async function catchUpTodaysSummary(): Promise<void> {
+  try {
+    const dateStr = getTodayMadrid()
+    const [existing] = await db
+      .select({ id: summaries.id })
+      .from(summaries)
+      .where(eq(summaries.date, dateStr))
+
+    if (existing) {
+      console.log(`[Cron] Catch-up skipped — summary already exists for ${dateStr}`)
+      return
+    }
+
+    console.log(`[Cron] Catch-up running — no summary found for ${dateStr}`)
+    await generateAndStoreSummary(dateStr, { sendTelegram: true })
+    console.log(`[Cron] Catch-up summary saved & sent for ${dateStr}`)
+  } catch (error) {
+    console.error('[Cron] Catch-up summary failed:', error)
   }
 }
 
@@ -140,9 +81,9 @@ export async function scheduleSummary(): Promise<void> {
 
 export function startCronJobs(): void {
   // Daily summary — scheduled immediately (async; errors are non-fatal at startup)
-  scheduleSummary().catch(err =>
-    console.error('[Cron] Failed to schedule daily summary:', err)
-  )
+  scheduleSummary()
+    .then(() => catchUpTodaysSummary())
+    .catch(err => console.error('[Cron] Failed to schedule daily summary:', err))
 
   // Daily Google Calendar sync
   const googleSyncCron = process.env.GOOGLE_SYNC_CRON ?? '0 3 * * *'
