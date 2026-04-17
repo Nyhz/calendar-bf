@@ -152,24 +152,12 @@ function CalendarShellInner() {
 
   const [view, setView] = useState<ViewType>(initialView)
   const [currentDate, setCurrentDate] = useState<Date>(initialDate)
-  const [filters, setFilters] = useState<Filters>(() => {
-    if (typeof window === 'undefined') return DEFAULT_FILTERS
-    try {
-      const stored = localStorage.getItem('calendarFilters')
-      return stored ? (JSON.parse(stored) as Filters) : DEFAULT_FILTERS
-    } catch { return DEFAULT_FILTERS }
-  })
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createDate, setCreateDate] = useState<Date | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-  const [visibleGoogleCalendars, setVisibleGoogleCalendars] = useState<Set<string>>(() => {
-    if (typeof window === 'undefined') return new Set()
-    try {
-      const raw = localStorage.getItem('visibleGoogleCalendars')
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set()
-    } catch { return new Set() }
-  })
+  const [visibleGoogleCalendars, setVisibleGoogleCalendars] = useState<Set<string>>(new Set())
 
   // Fetch Google integration status so CalendarShell can auto-show newly-enabled calendars
   const { data: googleStatus } = useSWR<GoogleIntegrationStatus>(
@@ -206,6 +194,18 @@ function CalendarShellInner() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setView(settings.default_view as ViewType)
   }, [settings?.default_view])
+
+  // Hydrate from localStorage after mount to avoid SSR/client mismatch
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('calendarFilters')
+      if (stored) setFilters(JSON.parse(stored) as Filters)
+    } catch { /* ignore */ }
+    try {
+      const raw = localStorage.getItem('visibleGoogleCalendars')
+      if (raw) setVisibleGoogleCalendars(new Set(JSON.parse(raw) as string[]))
+    } catch { /* ignore */ }
+  }, [])
 
   // Persist filters
   useEffect(() => {
