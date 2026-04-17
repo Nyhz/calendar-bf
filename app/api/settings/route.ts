@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllSettings, setSetting } from '@/lib/settings'
+import { scheduleSummary } from '@/lib/cron'
 
 const ALLOWED_KEYS = new Set(['theme', 'default_view', 'daily_summary_time'])
 
@@ -18,6 +19,7 @@ export async function PATCH(req: NextRequest) {
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Body must be an object' }, { status: 400 })
     }
+    let summaryTimeChanged = false
     for (const [k, v] of Object.entries(body)) {
       if (!ALLOWED_KEYS.has(k)) {
         return NextResponse.json({ error: `Unknown setting: ${k}` }, { status: 400 })
@@ -26,6 +28,12 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: `${k} must be a string` }, { status: 400 })
       }
       await setSetting(k, v)
+      if (k === 'daily_summary_time') summaryTimeChanged = true
+    }
+    if (summaryTimeChanged) {
+      scheduleSummary().catch(err =>
+        console.error('[Settings] Failed to reschedule daily summary:', err)
+      )
     }
     return NextResponse.json({ data: await getAllSettings() })
   } catch (e) {
