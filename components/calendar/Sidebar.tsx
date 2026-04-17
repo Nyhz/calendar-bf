@@ -1,5 +1,6 @@
 'use client'
 
+import useSWR from 'swr'
 import { MiniCalendar } from './MiniCalendar'
 import { TYPE_COLORS } from '@/lib/db/schema'
 import { cn } from '@/components/ui/utils'
@@ -9,12 +10,29 @@ type Filters = {
   regions: string[]
 }
 
+type GoogleCalendar = {
+  id: string
+  summary: string
+  backgroundColor: string | null
+  enabled: number
+}
+
+type GoogleIntegrationStatus = {
+  connected: boolean
+  calendars: GoogleCalendar[]
+}
+
 type SidebarProps = {
   currentDate: Date
   onDateSelect: (date: Date) => void
   filters: Filters
   onFiltersChange: (filters: Filters) => void
+  visibleGoogleCalendars: Set<string>
+  onToggleGoogleCalendar: (id: string, enabled: boolean) => void
 }
+
+const googleFetcher = (u: string) =>
+  fetch(u).then(r => r.json()).then(j => j.data as GoogleIntegrationStatus)
 
 const EVENT_TYPES = [
   { key: 'event', label: 'Eventos' },
@@ -30,8 +48,22 @@ const HOLIDAY_REGIONS = [
   { key: 'ES-MD', label: 'Madrid' },
 ] as const
 
-export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }: SidebarProps) {
+export function Sidebar({
+  currentDate,
+  onDateSelect,
+  filters,
+  onFiltersChange,
+  visibleGoogleCalendars,
+  onToggleGoogleCalendar,
+}: SidebarProps) {
   const holidayEnabled = filters.types.includes('holiday')
+
+  const { data: googleStatus } = useSWR<GoogleIntegrationStatus>(
+    '/api/integrations/google',
+    googleFetcher,
+  )
+
+  const enabledGoogleCalendars = googleStatus?.calendars.filter(c => c.enabled === 1) ?? []
 
   const toggleType = (type: string) => {
     const types = filters.types.includes(type)
@@ -143,6 +175,50 @@ export function Sidebar({ currentDate, onDateSelect, filters, onFiltersChange }:
           })}
         </ul>
       </div>
+
+      {/* Section 4: Google Calendars (only if at least one is enabled server-side) */}
+      {enabledGoogleCalendars.length > 0 && (
+        <>
+          <div className="mx-3 border-t border-dr-border" />
+          <div className="px-3">
+            <h3 className="mb-2 font-tactical text-[10px] uppercase tracking-widest text-dr-secondary">
+              Google Calendars
+            </h3>
+            <ul className="space-y-0.5">
+              {enabledGoogleCalendars.map(c => {
+                const checked = visibleGoogleCalendars.has(c.id)
+                return (
+                  <li key={c.id}>
+                    <label className="flex cursor-pointer items-center gap-2 px-2 py-1.5 transition-colors hover:bg-dr-hover">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => onToggleGoogleCalendar(c.id, e.target.checked)}
+                        className="sr-only"
+                      />
+                      <span
+                        className={cn(
+                          'flex h-4 w-4 shrink-0 items-center justify-center border transition-colors',
+                          checked ? 'border-transparent' : 'border-dr-border opacity-40',
+                        )}
+                        style={{ backgroundColor: checked ? (c.backgroundColor ?? '#3B82F6') : 'transparent' }}
+                        aria-hidden="true"
+                      >
+                        {checked && (
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="font-data text-sm text-dr-secondary">{c.summary}</span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </>
+      )}
     </div>
   )
 }

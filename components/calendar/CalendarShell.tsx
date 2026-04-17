@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import useSWR, { useSWRConfig } from 'swr'
 import DndProvider from './DndProvider'
@@ -14,6 +14,21 @@ import { EventForm } from './EventForm'
 import { EventPopover } from './EventPopover'
 import { cn } from '@/components/ui/utils'
 import type { Event } from '@/lib/db/schema'
+
+type GoogleCalendar = {
+  id: string
+  summary: string
+  backgroundColor: string | null
+  enabled: number
+}
+
+type GoogleIntegrationStatus = {
+  connected: boolean
+  calendars: GoogleCalendar[]
+}
+
+const googleFetcher = (u: string) =>
+  fetch(u).then(r => r.json()).then(j => j.data as GoogleIntegrationStatus)
 
 const TIMEZONE = process.env.NEXT_PUBLIC_TIMEZONE ?? 'Europe/Madrid'
 
@@ -145,11 +160,44 @@ function CalendarShellInner() {
   const [createDate, setCreateDate] = useState<Date | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [visibleGoogleCalendars, setVisibleGoogleCalendars] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try {
+      const raw = localStorage.getItem('visibleGoogleCalendars')
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set()
+    } catch { return new Set() }
+  })
+
+  // Fetch Google integration status so CalendarShell can auto-show newly-enabled calendars
+  const { data: googleStatus } = useSWR<GoogleIntegrationStatus>(
+    '/api/integrations/google',
+    googleFetcher,
+  )
 
   // Persist filters
   useEffect(() => {
     localStorage.setItem('calendarFilters', JSON.stringify(filters))
   }, [filters])
+
+  // Persist visibleGoogleCalendars
+  useEffect(() => {
+    localStorage.setItem('visibleGoogleCalendars', JSON.stringify([...visibleGoogleCalendars]))
+  }, [visibleGoogleCalendars])
+
+  // When a newly-enabled Google calendar appears, default it to visible
+  const seenGoogleCalendarIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!googleStatus?.calendars) return
+    const enabled = googleStatus.calendars.filter(c => c.enabled === 1).map(c => c.id)
+    const newOnes = enabled.filter(id => !seenGoogleCalendarIds.current.has(id))
+    if (newOnes.length === 0) return
+    for (const id of enabled) seenGoogleCalendarIds.current.add(id)
+    setVisibleGoogleCalendars(prev => {
+      const next = new Set(prev)
+      for (const id of newOnes) next.add(id)
+      return next
+    })
+  }, [googleStatus])
 
   // Sync URL
   useEffect(() => {
@@ -170,8 +218,22 @@ function CalendarShellInner() {
     return `/api/events?${params.toString()}`
   }, [start, end, filters])
 
-  const { data: events = [] } = useSWR<Event[]>(swrKey, fetcher)
+  const { data: rawEvents = [] } = useSWR<Event[]>(swrKey, fetcher)
   const { mutate } = useSWRConfig()
+
+  // Filter Google events by sidebar visibility selection
+  const events = useMemo(
+    () => rawEvents.filter(e => !e.googleCalendarId || visibleGoogleCalendars.has(e.googleCalendarId)),
+    [rawEvents, visibleGoogleCalendars],
+  )
+
+  const toggleGoogleCalendar = useCallback((id: string, enabled: boolean) => {
+    setVisibleGoogleCalendars(prev => {
+      const next = new Set(prev)
+      if (enabled) next.add(id); else next.delete(id)
+      return next
+    })
+  }, [])
 
   const revalidateEvents = useCallback(() => {
     mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/events'))
@@ -332,6 +394,8 @@ function CalendarShellInner() {
             onDateSelect={handleDateSelect}
             filters={filters}
             onFiltersChange={setFilters}
+            visibleGoogleCalendars={visibleGoogleCalendars}
+            onToggleGoogleCalendar={toggleGoogleCalendar}
           />
         </aside>
 
