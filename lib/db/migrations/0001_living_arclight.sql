@@ -28,7 +28,7 @@ CREATE TABLE `integrations` (
 CREATE UNIQUE INDEX `integrations_provider_unique` ON `integrations` (`provider`);--> statement-breakpoint
 ALTER TABLE `events` ADD `source` text DEFAULT 'local' NOT NULL;--> statement-breakpoint
 UPDATE events SET source = 'holiday' WHERE type = 'holiday';
-CREATE UNIQUE INDEX IF NOT EXISTS events_google_unique ON events (google_calendar_id, google_event_id) WHERE google_event_id IS NOT NULL;
 --> statement-breakpoint
 ALTER TABLE `events` ADD `google_event_id` text;--> statement-breakpoint
-ALTER TABLE `events` ADD `google_calendar_id` text;
+ALTER TABLE `events` ADD `google_calendar_id` text;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS events_google_unique ON events (google_calendar_id, google_event_id) WHERE google_event_id IS NOT NULL;
