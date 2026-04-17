@@ -379,6 +379,36 @@ Before marking any task complete:
 
 ---
 
+## Google Calendar integration
+
+One-way (read-only) sync from a Google account. Events mirror into the local DB with `source='google'`; they render alongside local events but cannot be edited from this app.
+
+### One-time setup
+
+1. Go to <https://console.cloud.google.com/>, create (or pick) a project.
+2. **APIs & Services → Library** → enable the **Google Calendar API**.
+3. **OAuth consent screen** → External → add yourself as a test user. Scopes: `calendar.readonly`, `openid`, `email`.
+4. **Credentials → Create Credentials → OAuth client ID** → Web application.
+   - Authorized redirect URI: `http://localhost:3000/api/integrations/google/callback`
+5. Put the client ID + secret into `.env.local`:
+   ```
+   GOOGLE_OAUTH_CLIENT_ID=...
+   GOOGLE_OAUTH_CLIENT_SECRET=...
+   ```
+6. Start the app, **open `http://localhost:3000/settings` in a browser running on the same machine as the app** (or SSH port-forward), click **Connect Google Calendar**, complete consent.
+7. Pick which calendars to sync. Initial sync runs immediately per calendar.
+
+### Why localhost
+
+Google OAuth rejects non-HTTPS redirect URIs except `localhost`/`127.0.0.1`. The consent dance must happen through localhost; after that, refresh-token-based sync works headlessly from anywhere on the LAN.
+
+### Sync cadence
+
+- Daily at 03:00 Madrid time (override with `GOOGLE_SYNC_CRON`).
+- Manual **Sync now** button on `/settings`.
+
+---
+
 <p align="center">
   <sub>NYHZ CAL — v0.1.0</sub><br>
   <sub>Europe/Madrid · Local-first · One user, one calendar.</sub>

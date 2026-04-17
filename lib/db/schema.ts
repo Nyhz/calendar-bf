@@ -13,6 +13,9 @@ export const events = sqliteTable('events', {
   location: text('location'),
   recurrence: text('recurrence').default('none'),
   region: text('region'),
+  source: text('source').notNull().default('local'),
+  googleEventId: text('google_event_id'),
+  googleCalendarId: text('google_calendar_id'),
   createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 })
@@ -37,3 +40,36 @@ export const TYPE_COLORS: Record<string, string> = {
   reminder: '#ffbf00',
   holiday: '#ff3333',
 }
+
+export const integrations = sqliteTable('integrations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  provider: text('provider').notNull().unique(),
+  accountEmail: text('account_email').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  accessToken: text('access_token'),
+  accessExpiresAt: text('access_expires_at'),
+  scopes: text('scopes').notNull(),
+  connectedAt: text('connected_at').notNull().default(sql`(datetime('now'))`),
+  lastSyncAt: text('last_sync_at'),
+  lastSyncError: text('last_sync_error'),
+})
+
+export const googleCalendars = sqliteTable('google_calendars', {
+  id: text('id').primaryKey(),
+  summary: text('summary').notNull(),
+  backgroundColor: text('background_color'),
+  enabled: integer('enabled').notNull().default(0),
+  syncToken: text('sync_token'),
+  lastSyncAt: text('last_sync_at'),
+})
+
+export const appSettings = sqliteTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+})
+
+export type Integration = typeof integrations.$inferSelect
+export type NewIntegration = typeof integrations.$inferInsert
+export type GoogleCalendar = typeof googleCalendars.$inferSelect
+export type NewGoogleCalendar = typeof googleCalendars.$inferInsert
+export type AppSetting = typeof appSettings.$inferSelect

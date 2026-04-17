@@ -43,8 +43,8 @@ export async function PATCH(
     if (!existing) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
-    if (existing.type === 'holiday') {
-      return NextResponse.json({ error: 'Holidays are system-managed' }, { status: 403 })
+    if (existing.source !== 'local') {
+      return NextResponse.json({ error: 'Events from external sources are read-only' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -92,8 +92,8 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
-    if (existing.type === 'holiday') {
-      return NextResponse.json({ error: 'Holidays are system-managed' }, { status: 403 })
+    if (existing.source !== 'local') {
+      return NextResponse.json({ error: 'Events from external sources are read-only' }, { status: 403 })
     }
 
     await db.delete(events).where(eq(events.id, eventId))
