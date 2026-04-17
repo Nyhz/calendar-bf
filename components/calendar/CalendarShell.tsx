@@ -203,6 +203,7 @@ function CalendarShellInner() {
   useEffect(() => {
     if (!settings?.default_view || appliedDefault.current) return
     appliedDefault.current = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setView(settings.default_view as ViewType)
   }, [settings?.default_view])
 
