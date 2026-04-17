@@ -417,6 +417,14 @@ function CalendarShellInner() {
             </button>
           ))}
         </div>
+
+        <a
+          href="/settings"
+          title="Ajustes"
+          className="border border-dr-border px-3 py-1 font-tactical text-sm uppercase tracking-wider text-dr-muted transition-all hover:bg-dr-hover hover:text-dr-text"
+        >
+          ⚙
+        </a>
       </header>
 
       {/* Main content */}
