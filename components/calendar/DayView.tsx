@@ -223,6 +223,14 @@ function ResizeHandle({
       document.removeEventListener('pointermove', handlePointerMove)
       document.removeEventListener('pointerup', handlePointerUp)
 
+      // Suppress the synthetic click that fires after pointerup so the
+      // edit modal doesn't open when releasing a resize drag.
+      const suppressClick = (ev: MouseEvent) => {
+        ev.stopPropagation()
+        document.removeEventListener('click', suppressClick, true)
+      }
+      document.addEventListener('click', suppressClick, true)
+
       const deltaY = upEvent.clientY - startY
       const deltaMinutes = Math.round(deltaY / (HOUR_HEIGHT / 60) / 15) * 15
       if (deltaMinutes !== 0) {
