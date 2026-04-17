@@ -1,6 +1,6 @@
 // lib/google/sync.ts
 import { google, type calendar_v3 } from 'googleapis'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
 import { events, googleCalendars, integrations, type GoogleCalendar } from '../db/schema'
 import { getAuthedClient } from './client'
