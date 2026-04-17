@@ -4,7 +4,6 @@ import { google } from 'googleapis'
 import { db } from '@/lib/db'
 import { integrations, googleCalendars } from '@/lib/db/schema'
 import { createOAuthClient, GOOGLE_SCOPES } from '@/lib/google/client'
-import { eq } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
   try {
